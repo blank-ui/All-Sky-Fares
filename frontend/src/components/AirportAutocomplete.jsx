@@ -215,7 +215,7 @@ export function AirportAutocomplete({
 
       {/* Input wrapper matching spatial theme */}
       <div className="relative mt-1 group">
-        <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none ${iconClasses}`}>
+        <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 ${iconClasses}`}>
           <Plane size={16} className={isOrigin ? "-rotate-45" : "rotate-45"} />
         </div>
 

@@ -209,7 +209,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
               >
                 Depart
                 <div className="relative mt-1">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-sky-500">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10 text-sky-500">
                     <Calendar size={15} />
                   </div>
                   <input
@@ -232,7 +232,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
                 >
                   Return
                   <div className="relative mt-1">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-orange-500">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10 text-orange-500">
                       <Calendar size={15} />
                     </div>
                     <input

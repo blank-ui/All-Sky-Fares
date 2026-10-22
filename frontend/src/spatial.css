@@ -266,12 +266,16 @@ body {
   border: 1.5px solid rgba(203, 213, 225, 0.7);
   color: #0f172a;
   border-radius: 14px;
-  padding: 10px 14px;
-  font-size: 14px;
   font-weight: 600;
   outline: none;
   transition: all 0.25s ease;
   backdrop-filter: blur(10px);
+}
+
+/* Zero specificity so Tailwind padding/text utilities (pl-9 beside an icon, text-xs) win */
+:where(.spatial-input) {
+  padding: 10px 14px;
+  font-size: 14px;
 }
 
 .spatial-input:focus {
@@ -297,6 +301,17 @@ input[type="date"].spatial-input {
   cursor: pointer;
   position: relative;
   font-family: inherit;
+  /* iOS Safari gives native date inputs an intrinsic min-width and centred text, which overflows grid cells */
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  display: block;
+  text-align: left;
+}
+
+input[type="date"].spatial-input::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
 }
 
 input[type="date"].spatial-input::-webkit-calendar-picker-indicator {
