@@ -4,7 +4,7 @@ import { API, apiRequest } from "@/lib/api";
 
 // Duffel's card form (it loads Stripe), only fetched when a customer reaches the payment step.
 const DuffelPayments = lazy(() => import("@duffel/components").then((m) => ({ default: m.DuffelPayments })));
-import { Check, ArrowRight, ShieldCheck, UserCheck, UserPlus, Plane, Lock, AlertCircle, Info, Ticket, CreditCard, Sparkles, ChevronRight } from "lucide-react";
+import { Check, X, ArrowRight, ShieldCheck, UserCheck, UserPlus, Plane, Lock, AlertCircle, Info, Ticket, CreditCard, Sparkles, ChevronRight } from "lucide-react";
 
 const newPassenger = (user, isLead) => ({
   type: "adult",
@@ -206,7 +206,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                   </span>
                   <div>
                     <legend className="text-base font-bold text-slate-900 dark:text-white tracking-wide">
-                      Passenger {i + 1} <span className="text-xs sm:text-base font-semibold sm:font-bold text-slate-500 dark:text-white/60 sm:text-inherit">({p.type.toUpperCase()})</span>
+                      Passenger {i + 1} <span className="text-xs sm:text-base font-semibold sm:font-bold text-slate-500 dark:text-white/60 sm:text-slate-900 sm:dark:text-white">({p.type.toUpperCase()})</span>
                     </legend>
                     <span className="text-xs text-slate-400 dark:text-white/50">{i === 0 ? "Primary traveller details" : "Additional traveller"}</span>
                   </div>
@@ -333,31 +333,33 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
               </label>
 
               {/* Optional backup contacts: shown once added; documents still go to the primary email only. */}
-              {SECONDARY_FIELDS.map((f) =>
-                p[f.key] === undefined ? null : (
-                  <label key={f.key} className="mt-4 flex flex-col gap-1.5 text-xs font-semibold text-slate-500 dark:text-white/70">
-                    <span className="flex items-center justify-between">
+              {SECONDARY_FIELDS.some((f) => p[f.key] !== undefined) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  {SECONDARY_FIELDS.filter((f) => p[f.key] !== undefined).map((f) => (
+                    <label key={f.key} className="flex flex-col gap-1.5 text-xs font-semibold text-slate-500 dark:text-white/70">
                       {f.label}
-                      <button
-                        type="button"
-                        onClick={() => updatePassenger(i, f.key, undefined)}
-                        data-testid={`passenger-${i + 1}-${f.key}-remove`}
-                        className="text-[11px] font-semibold text-rose-500 dark:text-rose-400 hover:text-rose-600"
-                      >
-                        Remove
-                      </button>
-                    </span>
-                    <input
-                      data-testid={`passenger-${i + 1}-${f.key}`}
-                      type={f.type}
-                      value={p[f.key]}
-                      onChange={(e) => updatePassenger(i, f.key, e.target.value)}
-                      required
-                      placeholder={f.placeholder}
-                      className="spatial-input w-full px-3.5 py-2.5 rounded-xl text-sm"
-                    />
-                  </label>
-                )
+                      <div className="relative">
+                        <input
+                          data-testid={`passenger-${i + 1}-${f.key}`}
+                          type={f.type}
+                          value={p[f.key]}
+                          onChange={(e) => updatePassenger(i, f.key, e.target.value)}
+                          placeholder={f.placeholder}
+                          className="spatial-input w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updatePassenger(i, f.key, undefined)}
+                          data-testid={`passenger-${i + 1}-${f.key}-remove`}
+                          aria-label={`Remove ${f.label.toLowerCase()}`}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-rose-500 dark:text-white/40 dark:hover:text-rose-400 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               )}
               {SECONDARY_FIELDS.some((f) => p[f.key] === undefined) && (
                 <div className="mt-3 flex flex-wrap gap-2">
