@@ -4,7 +4,7 @@ import { API, apiRequest } from "@/lib/api";
 
 // Duffel's card form (it loads Stripe), only fetched when a customer reaches the payment step.
 const DuffelPayments = lazy(() => import("@duffel/components").then((m) => ({ default: m.DuffelPayments })));
-import { Check, ArrowRight, ShieldCheck, UserCheck, Plane, Lock, AlertCircle, Info, Ticket, CreditCard, Sparkles, ChevronRight } from "lucide-react";
+import { Check, ArrowRight, ShieldCheck, UserCheck, UserPlus, Plane, Lock, AlertCircle, Info, Ticket, CreditCard, Sparkles, ChevronRight } from "lucide-react";
 
 const newPassenger = (user, isLead) => ({
   type: "adult",
@@ -199,14 +199,14 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
               data-testid={`passenger-${i + 1}`}
               className="liquid-glass-card p-6 sm:p-7 rounded-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-200 dark:border-white/10">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-200 dark:border-white/10">
+                <div className="flex items-center gap-3 min-w-0">
                   <span className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-400/30 flex items-center justify-center font-bold text-sm">
                     {i + 1}
                   </span>
                   <div>
                     <legend className="text-base font-bold text-slate-900 dark:text-white tracking-wide">
-                      Passenger {i + 1} ({p.type.toUpperCase()})
+                      Passenger {i + 1} <span className="text-xs sm:text-base font-semibold sm:font-bold text-slate-500 dark:text-white/60 sm:text-inherit">({p.type.toUpperCase()})</span>
                     </legend>
                     <span className="text-xs text-slate-400 dark:text-white/50">{i === 0 ? "Primary traveller details" : "Additional traveller"}</span>
                   </div>
@@ -216,9 +216,21 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                     type="button"
                     onClick={() => removePassenger(i)}
                     data-testid={`passenger-${i + 1}-remove`}
-                    className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
+                    className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 px-2 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
                   >
                     Remove
+                  </button>
+                )}
+                {i === 0 && passengers.length < MAX_PASSENGERS && !payment && (
+                  <button
+                    type="button"
+                    onClick={addPassenger}
+                    data-testid="add-passenger"
+                    aria-label="Add another passenger"
+                    className="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 px-3.5 sm:px-4 py-2 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-400/30 hover:border-cyan-400 text-xs sm:text-sm font-semibold transition-colors touch-manipulation disabled:opacity-60 disabled:cursor-wait"
+                  >
+                    <UserPlus size={16} className="shrink-0" />
+                    {repricing ? "Updating…" : <><span className="sm:hidden">Add</span><span className="hidden sm:inline">Add passenger</span></>}
                   </button>
                 )}
               </div>
@@ -355,7 +367,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                       type="button"
                       onClick={() => updatePassenger(i, f.key, "")}
                       data-testid={`passenger-${i + 1}-add-${f.key}`}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-white/20 text-slate-500 dark:text-white/70 hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors"
+                      className="rounded-xl border border-sky-300 px-4 py-2 text-xs font-bold text-sky-700 hover:bg-white dark:border-sky-400/30 dark:text-sky-200 dark:hover:bg-white/5 transition-colors"
                     >
                       + Add {f.label.toLowerCase()}
                     </button>
@@ -365,18 +377,6 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
             </fieldset>
           ))}
 
-          {/* Add passenger button */}
-          {passengers.length < MAX_PASSENGERS && !payment && (
-            <button
-              type="button"
-              onClick={addPassenger}
-              disabled={busy || repricing}
-              data-testid="add-passenger"
-              className="w-full py-3 rounded-xl border border-dashed border-slate-300 dark:border-white/20 hover:border-cyan-400 dark:hover:border-cyan-400/50 text-slate-500 dark:text-white/70 hover:text-cyan-600 dark:hover:text-cyan-300 text-sm font-medium transition-all flex items-center justify-center gap-2 hover:bg-cyan-50 dark:hover:bg-cyan-500/5 disabled:opacity-60 disabled:cursor-wait"
-            >
-              {repricing ? "Updating fare…" : "+ Add another passenger"}
-            </button>
-          )}
           {repriceError && (
             <p role="alert" className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5" data-testid="reprice-error">
               <AlertCircle size={14} className="shrink-0" /> {repriceError}
