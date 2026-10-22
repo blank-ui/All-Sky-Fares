@@ -1,0 +1,14 @@
+{
+  "sites": [
+    {
+      "domain": "allskyfares.com",
+      "username": "u633779242",
+      "type": "nodejs",
+      "source": "api/ with the React build in api/public (deploy/package.ps1)",
+      "node_version": 22,
+      "entry_file": "server.js",
+      "note": "One app serves the website and /api. Replaces the older Express site at launch."
+    }
+  ],
+  "retire_after_launch": ["api.allskyfares.com", "new.allskyfares.com"]
+}

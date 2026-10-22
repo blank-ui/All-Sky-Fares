@@ -1,0 +1,13 @@
+{
+  "name": "allskyfares",
+  "version": "1.0.0",
+  "private": true,
+  "description": "All Sky Fares OTA - Single-port unified development and production workspace",
+  "scripts": {
+    "dev": "npm --prefix frontend start",
+    "start": "npm --prefix frontend start",
+    "start:api": "npm --prefix api start",
+    "build": "npm --prefix api run build:web",
+    "test": "npm --prefix api test"
+  }
+}

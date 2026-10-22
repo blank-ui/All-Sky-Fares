@@ -1,0 +1,29 @@
+{
+  "name": "allskyfares-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "All Sky Fares OTA API (Express + MySQL)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node scripts/manage.js migrate",
+    "test": "node --test test/unit.test.js test/crm-events.test.js test/card-payments.test.js test/auth-limits.test.js",
+    "build:web": "node scripts/build-web.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "csv-parse": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^2.4.0",
+    "mysql2": "^3.11.5",
+    "nodemailer": "^10.1.7",
+    "pdfkit": "^0.15.2",
+    "resend": "^4.0.1"
+  }
+}

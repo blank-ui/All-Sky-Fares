@@ -1,0 +1,494 @@
+/* =========================================================================
+   ALL SKY FARES — SPATIAL LIQUID GLASS DESIGN SYSTEM
+   Modern Spatial Computing, Depth, Translucency & Fluid Animations
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-main: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Playfair Display', serif;
+  --font-accent: 'Outfit', sans-serif;
+
+  /* Spatial Color Palette */
+  --space-dark: #070d18;
+  --space-dark-elevated: #0d172a;
+  --space-light: #f8fafc;
+  --space-light-elevated: #ffffff;
+  
+  --sky-blue: #0284c7;
+  --sky-blue-light: #38bdf8;
+  --sunset-orange: #f97316;
+  --sunset-orange-hover: #ea580c;
+  --aurora-purple: #8b5cf6;
+  
+  --glass-bg-light: rgba(255, 255, 255, 0.88);
+  --glass-bg-dark: rgba(13, 23, 42, 0.75);
+  
+  --glass-border-light: rgba(226, 232, 240, 0.9);
+  --glass-border-dark: rgba(255, 255, 255, 0.12);
+  
+  --glass-shadow-light: 0 20px 45px -10px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+  --glass-shadow-dark: 0 25px 60px -12px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Base resets & typography */
+body {
+  font-family: var(--font-main);
+  background-color: var(--space-light);
+  color: #0f172a;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body,
+.app.dark {
+  background-color: var(--space-dark);
+  color: #f1f5f9;
+}
+
+/* Light Mode Base Typography Fallbacks */
+.app.light h1, .app.light h2, .app.light h3, .app.light h4, .app.light b, .app.light strong {
+  color: #0f172a;
+}
+
+.app.light p, .app.light span:not(.spatial-tag):not([class*="text-"]), .app.light label:not([class*="text-"]) {
+  color: #334155;
+}
+
+/* ...except where an ancestor sets white text (photos, dark panels, banners): headings and plain
+   text there inherit it instead of turning dark grey. `~=` matches the exact class, not dark:text-white. */
+.app.light [class~="text-white"] :is(h1, h2, h3, h4, b, strong, p, span:not([class*="text-"]), label:not([class*="text-"])) {
+  color: inherit;
+}
+
+/* slate-400 is too faint for small helper text on white; use one step darker in light mode. */
+.app.light .text-slate-400 {
+  color: #64748b;
+}
+
+/* ...and inside coloured buttons, whose labels keep the button's own (white) text colour. */
+.app.light .spatial-btn-primary span:not([class*="text-"]),
+.app.light .spatial-btn-primary b,
+.app.light button[class*="text-white"] span:not([class*="text-"]),
+.app.light a[class*="text-white"] span:not([class*="text-"]) {
+  color: inherit;
+}
+
+/* =========================================================================
+   LIQUID GLASS FOUNDATIONS
+   ========================================================================= */
+
+.liquid-glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid var(--glass-border-light);
+  box-shadow: var(--glass-shadow-light), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .liquid-glass {
+  background: var(--glass-bg-dark);
+  border: 1px solid var(--glass-border-dark);
+  box-shadow: var(--glass-shadow-dark), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Elevated interactive card */
+.liquid-glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 
+    0 16px 40px -12px rgba(15, 23, 42, 0.07),
+    0 2px 6px rgba(15, 23, 42, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 1);
+  border-radius: 24px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  overflow: hidden;
+}
+
+.liquid-glass-card:hover {
+  transform: translateY(-4px) scale(1.006);
+  box-shadow: 
+    0 24px 50px -12px rgba(15, 23, 42, 0.12),
+    0 4px 12px rgba(15, 23, 42, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 1);
+  border-color: rgba(2, 132, 199, 0.4);
+}
+
+.dark .liquid-glass-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 20px 50px -12px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.dark .liquid-glass-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 
+    0 30px 70px -15px rgba(0, 0, 0, 0.7),
+    0 4px 14px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+/* Buttons */
+.liquid-glass-btn {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-btn:hover {
+  background: #ffffff;
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-2px);
+}
+
+.dark .liquid-glass-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.dark .liquid-glass-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.liquid-glass-badge {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .liquid-glass-badge {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Primary Spatial Action Button */
+.spatial-btn-primary {
+  position: relative;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 60%, #c2410c 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 10px 25px -4px rgba(234, 88, 12, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.spatial-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.75s ease;
+}
+
+.spatial-btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 16px 35px -6px rgba(234, 88, 12, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.spatial-btn-primary:hover::after {
+  left: 150%;
+}
+
+.spatial-btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Secondary Button */
+.spatial-btn-secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: #0f172a;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.spatial-btn-secondary:hover {
+  background: #ffffff;
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.12);
+}
+
+.dark .spatial-btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark .spatial-btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+/* Inputs & Form Fields */
+.spatial-input {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1.5px solid rgba(203, 213, 225, 0.7);
+  color: #0f172a;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(10px);
+}
+
+.spatial-input:focus {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.dark .spatial-input {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.dark .spatial-input:focus {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* Modern Calendar Picker UI refinement */
+input[type="date"].spatial-input {
+  cursor: pointer;
+  position: relative;
+  font-family: inherit;
+}
+
+input[type="date"].spatial-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: invert(0.2);
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+input[type="date"].spatial-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(2, 132, 199, 0.12);
+  transform: scale(1.1);
+}
+
+.dark input[type="date"].spatial-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.75;
+}
+
+.dark input[type="date"].spatial-input::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(56, 189, 248, 0.2);
+}
+
+/* Search Tabs */
+.spatial-tab-btn {
+  position: relative;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spatial-tab-btn.active {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.dark .spatial-tab-btn {
+  color: #94a3b8;
+}
+
+.dark .spatial-tab-btn.active {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* =========================================================================
+   ANIMATIONS & KEYFRAMES
+   ========================================================================= */
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 16s linear infinite;
+}
+
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 6s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; filter: blur(20px); }
+  50% { opacity: 0.9; filter: blur(28px); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 5s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Vignette overlay */
+.bg-radial-vignette {
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 13, 24, 0.85) 100%);
+}
+
+/* Flight Slice & Timeline */
+.flight-timeline-line {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #ea580c 100%);
+  border-radius: 9999px;
+}
+
+.flight-timeline-plane {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  color: #0284c7;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dark .flight-timeline-plane {
+  background: #0f172a;
+  color: #38bdf8;
+}
+
+/* Horizontal swipe rows (tabs, chips) without a visible scrollbar */
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Google website translator: keep its banner and hover tooltips out of our layout */
+.goog-te-banner-frame, iframe.skiptranslate, #goog-gt-tt, .goog-te-balloon-frame, .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+body { top: 0 !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+
+
+/* ==========================================================================
+   Bento Grid Design System
+   ========================================================================== */
+
+.bento-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 28px;
+  box-shadow: 
+    0 16px 40px -12px rgba(15, 23, 42, 0.05),
+    0 2px 6px rgba(15, 23, 42, 0.02),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.dark .bento-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 20px 45px -12px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.bento-card-interactive {
+  cursor: pointer;
+}
+
+.bento-card-interactive:hover {
+  transform: translateY(-3px);
+  border-color: rgba(2, 132, 199, 0.35);
+  box-shadow: 
+    0 24px 50px -12px rgba(15, 23, 42, 0.1),
+    0 4px 12px rgba(15, 23, 42, 0.04),
+    inset 0 1px 1px rgba(255, 255, 255, 1);
+}
+
+.dark .bento-card-interactive:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 
+    0 28px 60px -15px rgba(0, 0, 0, 0.6),
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.bento-hero-glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(50px);
+}

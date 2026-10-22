@@ -1,0 +1,63 @@
+{
+  "project": "AllSkyFares OTA & CRM Integration Platform",
+  "version": "1.0.0",
+  "theme": "Editorial Midnight Blue & Aerospace Luxury (Archetype 5 / Luxury + Swiss High Contrast)",
+  "typography": {
+    "headings": {
+      "font_family": "Cormorant Garamond, serif",
+      "weights": ["300", "500", "700"],
+      "classes": "font-serif tracking-tight"
+    },
+    "body": {
+      "font_family": "Plus Jakarta Sans, sans-serif",
+      "weights": ["400", "500", "600"],
+      "classes": "font-sans antialiased text-slate-100 dark:text-slate-100"
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "weights": ["400", "500"],
+      "classes": "font-mono"
+    }
+  },
+  "colors": {
+    "primary": "#0F172A",
+    "secondary": "#38BDF8",
+    "accent": "#F59E0B",
+    "surface_dark": "#0B0F19",
+    "surface_light": "#FFFFFF",
+    "muted": "#64748B",
+    "border_dark": "rgba(255, 255, 255, 0.1)",
+    "border_light": "rgba(15, 23, 42, 0.1)"
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-slate-950/70 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.37)]",
+    "card_style": "rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl relative overflow-hidden",
+    "tracing_beam": "relative before:absolute before:inset-0 before:p-[1px] before:rounded-2xl before:bg-gradient-to-r before:from-sky-500 before:via-amber-400 before:to-indigo-500 before:-z-10"
+  },
+  "component_path": "/app/frontend/src/components",
+  "image_urls": {
+    "hero_flight": {
+      "category": "hero backgrounds",
+      "url": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=2000&q=80",
+      "description": "Aerial airplane above clouds at sunset for heroic landing banner"
+    },
+    "aviation_luxury": {
+      "category": "features and cards",
+      "url": "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1200&q=80",
+      "description": "Modern airport terminal lounge and private aviation aesthetics"
+    },
+    "globe_network": {
+      "category": "global destinations",
+      "url": "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1200&q=80",
+      "description": "Vintage map and compass travel planning"
+    }
+  },
+  "universal_guidelines": [
+    "Never use pure black #000000; tint with deep midnight blue #0B0F19",
+    "Always include data-testid on all interactive and informational elements",
+    "Use 2-3x generous spacing (p-6 to p-12, gap-8)",
+    "Every page must have a fully responsive header and sticky navigation",
+    "Ensure APCA and WCAG AA contrast compliance across all theme states",
+    "Provide CSV/XLSX markup rule management, Duffel flight search, checkout, pricing simulator, and CRM sync integration"
+  ]
+}
