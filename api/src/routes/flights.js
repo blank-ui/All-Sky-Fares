@@ -43,6 +43,54 @@ function offerRoute(offer) {
   return [(first.origin || {}).iata_code || "", (first.destination || {}).iata_code || ""];
 }
 
+/** The same flights whatever the fare variant: carrier, flight number and departure of every segment. */
+function itineraryKey(offer) {
+  return JSON.stringify((offer.slices || []).flatMap((sl) => (sl.segments || []).map((seg) => [(seg.marketing_carrier || {}).iata_code, seg.marketing_carrier_flight_number, seg.departing_at])));
+}
+
+/** Cheapest offer per itinerary, cheapest first. */
+function cheapestPerItinerary(offers) {
+  const cheapest = new Map();
+  for (const offer of offers || []) {
+    const key = itineraryKey(offer);
+    const prev = cheapest.get(key);
+    if (!prev || Number(offer.total_amount || 0) < Number(prev.total_amount || 0)) cheapest.set(key, offer);
+  }
+  return [...cheapest.values()].sort((a, b) => Number(a.total_amount || 0) - Number(b.total_amount || 0));
+}
+
+/** Search that finds an offer's flights again: its legs, dates and cabin. */
+function searchFromOffer(offer) {
+  const slices = (offer.slices || []).map((sl) => ({
+    origin: (sl.origin || {}).iata_code,
+    destination: (sl.destination || {}).iata_code,
+    departure_date: String(((sl.segments || [])[0] || {}).departing_at || "").slice(0, 10),
+  }));
+  const firstSegment = (((offer.slices || [])[0] || {}).segments || [])[0] || {};
+  const cabin = ((firstSegment.passengers || [])[0] || {}).cabin_class || "economy";
+  return { slices, cabin };
+}
+
+/** What the website shows for an offer, with our markup applied for its number of travellers. */
+async function presentOffer(offer, markups) {
+  const owner = offer.owner || {};
+  const travellers = (offer.passengers || []).length || 1;
+  // Same airports checkout prices with, so a city-code search (LON) shows the price that's charged.
+  const [origin, destination] = offerRoute(offer);
+  const [total] = await priceOffer(Number(offer.total_amount || 0), origin, destination, travellers, markups);
+  return {
+    id: offer.id,
+    airline: owner.name || "Airline",
+    airline_code: owner.iata_code || "",
+    airline_logo: airlineLogo(owner.iata_code || ""),
+    total,
+    currency: offer.total_currency || "USD",
+    expires_at: offer.expires_at || null,
+    slices: normalizeSlices(offer.slices || []),
+    passenger_count: travellers,
+  };
+}
+
 function validatePassengers(list) {
   if (!Array.isArray(list) || list.length < 1 || list.length > 9) throw new HttpError(422, "Provide between 1 and 9 passengers");
   return list.map((p, i) => {
@@ -73,13 +121,7 @@ module.exports = (logger) => {
     const raw = result.data || {};
     const markups = await loadMarkups(logger);
     // Duffel often returns many fare variants of the same flights; show each itinerary once, at its cheapest.
-    const cheapest = new Map();
-    for (const offer of raw.offers || []) {
-      const key = JSON.stringify((offer.slices || []).flatMap((sl) => (sl.segments || []).map((seg) => [(seg.marketing_carrier || {}).iata_code, seg.marketing_carrier_flight_number, seg.departing_at])));
-      const prev = cheapest.get(key);
-      if (!prev || Number(offer.total_amount || 0) < Number(prev.total_amount || 0)) cheapest.set(key, offer);
-    }
-    const ranked = [...cheapest.values()].sort((a, b) => Number(a.total_amount || 0) - Number(b.total_amount || 0)).slice(0, 50);
+    const ranked = cheapestPerItinerary(raw.offers).slice(0, 50);
     const offers = [];
     for (const offer of ranked) {
       const owner = offer.owner || {};
@@ -98,22 +140,7 @@ module.exports = (logger) => {
       if (ownerCode === "ZZ" || ownerName.includes("duffel") || hasDuffelSlice) {
         continue;
       }
-      const base = Number(offer.total_amount || 0);
-      const travellers = (offer.passengers || []).length || adults;
-      // Same airports checkout prices with, so a city-code search (LON) shows the price that's charged.
-      const [origin, destination] = offerRoute(offer);
-      const [total] = await priceOffer(base, origin, destination, travellers, markups);
-      offers.push({
-        id: offer.id,
-        airline: owner.name || "Airline",
-        airline_code: owner.iata_code || "",
-        airline_logo: airlineLogo(owner.iata_code || ""),
-        total,
-        currency: offer.total_currency || "USD",
-        expires_at: offer.expires_at || null,
-        slices: normalizeSlices(offer.slices || []),
-        passenger_count: travellers,
-      });
+      offers.push(await presentOffer(offer, markups));
     }
     offers.sort((a, b) => a.total - b.total);
     res.json({ offers, count: offers.length, offer_request_id: raw.id || null, trip_type: tripType, test_mode: raw.live_mode === false });
@@ -123,18 +150,23 @@ module.exports = (logger) => {
     await rateLimit(`offer:${clientIp(req)}`, 120, 60, "Too many requests from this network. Please try again later.");
     const offer = (await duffelCall("GET", `/air/offers/${encodeURIComponent(req.params.offerId)}?return_available_services=false`, undefined, logger)).data || {};
     if (!offer.id) throw new HttpError(404, "Offer not found");
-    const base = Number(offer.total_amount || 0);
-    const owner = offer.owner || {};
-    const slices = offer.slices || [];
-    const [origin, destination] = offerRoute(offer);
-    const [total] = await priceOffer(base, origin, destination, (offer.passengers || []).length || 1);
-    res.json({
-      id: offer.id, airline: owner.name || "Airline",
-      airline_code: owner.iata_code || "", airline_logo: airlineLogo(owner.iata_code || ""),
-      total, currency: offer.total_currency || "USD",
-      expires_at: offer.expires_at || null, slices: normalizeSlices(slices),
-      passenger_count: (offer.passengers || []).length,
-    });
+    res.json(await presentOffer(offer));
+  }));
+
+  // A fare is priced for a fixed number of travellers, so a different count needs a new Duffel offer for the same flights.
+  r.post("/offers/:offerId/reprice", ah(async (req, res) => {
+    await rateLimit(`search:${clientIp(req)}`, 60, 60, "Too many searches from this network. Please try again later.");
+    const adults = v.int(v.body(req), "adults", { min: 1, max: 9 });
+    const original = (await duffelCall("GET", `/air/offers/${encodeURIComponent(req.params.offerId)}?return_available_services=false`, undefined, logger)).data || {};
+    if (!original.id) throw new HttpError(404, "Offer not found");
+    if ((original.passengers || []).length === adults) return res.json(await presentOffer(original));
+    const { slices, cabin } = searchFromOffer(original);
+    const payload = { data: { slices, passengers: Array.from({ length: adults }, () => ({ type: "adult" })), cabin_class: cabin } };
+    const raw = (await duffelCall("POST", "/air/offer_requests?return_offers=true&supplier_timeout=25000", payload, logger)).data || {};
+    const key = itineraryKey(original);
+    const match = cheapestPerItinerary(raw.offers).find((o) => itineraryKey(o) === key);
+    if (!match) throw new HttpError(409, `These flights aren't available for ${adults} travellers. Please search again with ${adults} travellers.`);
+    res.json(await presentOffer(match));
   }));
 
   // Hotels and cars are UI shells until a provider is connected; no third-party API is called.
@@ -347,3 +379,5 @@ module.exports = (logger) => {
 
 module.exports.resolveSearch = resolveSearch;
 module.exports.offerRoute = offerRoute;
+module.exports.itineraryKey = itineraryKey;
+module.exports.searchFromOffer = searchFromOffer;

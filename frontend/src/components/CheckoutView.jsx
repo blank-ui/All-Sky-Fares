@@ -17,21 +17,25 @@ const newPassenger = (user, isLead) => ({
   phone_number: user?.phone || "",
 });
 
+const MAX_PASSENGERS = 9;
+
 const newIdempotencyKey = () =>
   window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
+export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel, onSignIn }) {
   const { formatMoney, currency } = useCurrency();
   // No sign-in needed: guests book with the lead passenger's details and get an account by email.
   const isGuest = !user;
   const guestToken = useRef(null);
-  // The fare is priced for a fixed number of travellers; Duffel rejects any other count.
-  const requiredPassengers = Math.max(1, Number(offer?.passenger_count) || 1);
+  // The fare is priced for a fixed number of travellers; adding or removing one re-prices the same flights.
+  const [offer, setOffer] = useState(searchedOffer);
   const [passengers, setPassengers] = useState(() =>
-    Array.from({ length: requiredPassengers }, (_, i) => newPassenger(user, i === 0))
+    Array.from({ length: Math.max(1, Number(searchedOffer?.passenger_count) || 1) }, (_, i) => newPassenger(user, i === 0))
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [repricing, setRepricing] = useState(false);
+  const [repriceError, setRepriceError] = useState("");
   // One key per checkout attempt so retries and double-clicks never create two orders.
   const idempotencyKey = useRef(newIdempotencyKey());
   const [accepted, setAccepted] = useState(false);
@@ -49,14 +53,28 @@ export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
     setPassengers(passengers.map((p, i) => (i === idx ? { ...p, [key]: val } : p)));
   };
 
+  const reprice = async (next) => {
+    setRepriceError("");
+    setRepricing(true);
+    try {
+      const d = await apiRequest(`/offers/${encodeURIComponent(offer.id)}/reprice`, { method: "POST", body: { adults: next.length } });
+      setOffer(d);
+      setPassengers(next);
+    } catch (err) {
+      setRepriceError(err.message || "We couldn't update the fare for that many travellers.");
+    } finally {
+      setRepricing(false);
+    }
+  };
+
   const addPassenger = () => {
-    if (passengers.length >= requiredPassengers) return;
-    setPassengers([...passengers, newPassenger(user, false)]);
+    if (passengers.length >= MAX_PASSENGERS) return;
+    reprice([...passengers, newPassenger(user, false)]);
   };
 
   const removePassenger = (idx) => {
-    if (passengers.length <= requiredPassengers) return;
-    setPassengers(passengers.filter((_, i) => i !== idx));
+    if (idx === 0 || passengers.length <= 1) return;
+    reprice(passengers.filter((_, i) => i !== idx));
   };
 
   const submit = async (e) => {
@@ -172,7 +190,7 @@ export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
           {passengers.map((p, i) => (
             <fieldset
               key={i}
-              disabled={Boolean(payment) || busy}
+              disabled={Boolean(payment) || busy || repricing}
               data-testid={`passenger-${i + 1}`}
               className="liquid-glass-card p-6 sm:p-7 rounded-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden"
             >
@@ -185,13 +203,14 @@ export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
                     <legend className="text-base font-bold text-slate-900 dark:text-white tracking-wide">
                       Passenger {i + 1} ({p.type.toUpperCase()})
                     </legend>
-                    <span className="text-xs text-slate-400 dark:text-white/50">Primary traveller details</span>
+                    <span className="text-xs text-slate-400 dark:text-white/50">{i === 0 ? "Primary traveller details" : "Additional traveller"}</span>
                   </div>
                 </div>
-                {passengers.length > requiredPassengers && (
+                {i > 0 && (
                   <button
                     type="button"
                     onClick={() => removePassenger(i)}
+                    data-testid={`passenger-${i + 1}-remove`}
                     className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
                   >
                     Remove
@@ -299,14 +318,21 @@ export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
           ))}
 
           {/* Add passenger button */}
-          {passengers.length < requiredPassengers && (
+          {passengers.length < MAX_PASSENGERS && !payment && (
             <button
               type="button"
               onClick={addPassenger}
-              className="w-full py-3 rounded-xl border border-dashed border-slate-300 dark:border-white/20 hover:border-cyan-400 dark:hover:border-cyan-400/50 text-slate-500 dark:text-white/70 hover:text-cyan-600 dark:hover:text-cyan-300 text-sm font-medium transition-all flex items-center justify-center gap-2 hover:bg-cyan-50 dark:hover:bg-cyan-500/5"
+              disabled={busy || repricing}
+              data-testid="add-passenger"
+              className="w-full py-3 rounded-xl border border-dashed border-slate-300 dark:border-white/20 hover:border-cyan-400 dark:hover:border-cyan-400/50 text-slate-500 dark:text-white/70 hover:text-cyan-600 dark:hover:text-cyan-300 text-sm font-medium transition-all flex items-center justify-center gap-2 hover:bg-cyan-50 dark:hover:bg-cyan-500/5 disabled:opacity-60 disabled:cursor-wait"
             >
-              + Add another passenger
+              {repricing ? "Updating fare…" : "+ Add another passenger"}
             </button>
+          )}
+          {repriceError && (
+            <p role="alert" className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5" data-testid="reprice-error">
+              <AlertCircle size={14} className="shrink-0" /> {repriceError}
+            </p>
           )}
 
           {/* What happens next */}
@@ -427,7 +453,7 @@ export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
               form="checkout-form"
               className={`primary-button spatial-btn-primary w-full sm:w-auto flex-1 py-4 px-8 rounded-xl font-bold text-base flex items-center justify-center gap-3 shadow-xl ${payment ? "!hidden" : ""}`}
               data-testid="checkout-submit-button"
-              disabled={busy || !accepted || Boolean(payment)}
+              disabled={busy || repricing || !accepted || Boolean(payment)}
             >
               {busy ? (
                 <>
@@ -530,7 +556,7 @@ export function CheckoutView({ offer, user, onComplete, onCancel, onSignIn }) {
             <div className="summary-total flex justify-between items-baseline gap-4">
               <div>
                 <small className="text-slate-400 dark:text-white/50 text-xs uppercase tracking-wider block">Total Amount</small>
-                <span className="text-xs text-slate-500 dark:text-white/50">Total for all travellers, including taxes and fees</span>
+                <span className="text-xs text-slate-500 dark:text-white/50">Total for {passengers.length} {passengers.length === 1 ? "traveller" : "travellers"}, including taxes and fees</span>
               </div>
               <div className="text-right">
                 <b

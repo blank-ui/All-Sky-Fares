@@ -199,3 +199,26 @@ test("Duffel webhooks: payment intent ids are found, order events are not mistak
   assert.equal(paymentIntentIdOf({ id: "ord_1" }, { idempotency_key: "ord_1" }), null);
   assert.equal(paymentIntentIdOf(null), null);
 });
+
+test("re-pricing finds the same flights again for a new traveller count", () => {
+  const { itineraryKey, searchFromOffer } = require("../src/routes/flights");
+  const seg = (no, at, cabin = "business") => ({ marketing_carrier: { iata_code: "IB" }, marketing_carrier_flight_number: no, departing_at: at, passengers: [{ cabin_class: cabin }] });
+  const offer = {
+    passengers: [{ id: "pas_1" }],
+    slices: [
+      { origin: { iata_code: "LHR" }, destination: { iata_code: "JFK" }, segments: [seg("6251", "2026-10-29T10:05:00")] },
+      { origin: { iata_code: "JFK" }, destination: { iata_code: "LHR" }, segments: [seg("6250", "2026-11-05T18:30:00")] },
+    ],
+  };
+  assert.deepEqual(searchFromOffer(offer), {
+    cabin: "business",
+    slices: [
+      { origin: "LHR", destination: "JFK", departure_date: "2026-10-29" },
+      { origin: "JFK", destination: "LHR", departure_date: "2026-11-05" },
+    ],
+  });
+  const twoTravellers = { ...offer, passengers: [{ id: "a" }, { id: "b" }] };
+  assert.equal(itineraryKey(twoTravellers), itineraryKey(offer));
+  const laterFlight = { ...offer, slices: [offer.slices[0], { ...offer.slices[1], segments: [seg("6250", "2026-11-06T18:30:00")] }] };
+  assert.notEqual(itineraryKey(laterFlight), itineraryKey(offer));
+});
