@@ -222,3 +222,20 @@ test("re-pricing finds the same flights again for a new traveller count", () => 
   const laterFlight = { ...offer, slices: [offer.slices[0], { ...offer.slices[1], segments: [seg("6250", "2026-11-06T18:30:00")] }] };
   assert.notEqual(itineraryKey(laterFlight), itineraryKey(offer));
 });
+
+test("secondary email and phone are optional, validated, and reach the CRM notes", () => {
+  const { validatePassengers } = require("../src/routes/flights");
+  const base = { given_name: "Jane", family_name: "Doe", born_on: "1990-01-01", email: "jane@example.com", phone_number: "+15550001111" };
+  const [plain] = validatePassengers([base]);
+  assert.equal(plain.secondary_email, null);
+  assert.equal(plain.secondary_phone, null);
+  const [extra] = validatePassengers([{ ...base, secondary_email: " office@example.com ", secondary_phone: "+15550009999" }]);
+  assert.equal(extra.secondary_email, "office@example.com");
+  assert.throws(() => validatePassengers([{ ...base, secondary_email: "not-an-email" }]), /valid email/);
+
+  const booking = { ...BOOKING, passengers: [{ ...BOOKING.passengers[0], secondary_email: "office@example.com", secondary_phone: "+15550009999" }, BOOKING.passengers[1]] };
+  const p = crm.buildCrmBookingPayload(booking, EVENT);
+  assert.equal(p.booking.customerEmail, "jane@example.com");
+  assert.ok(p.booking.internalNotes.includes("Secondary contacts: Jane Doe: office@example.com, +15550009999."));
+  assert.ok(!crm.buildCrmBookingPayload(BOOKING, EVENT).booking.internalNotes.includes("Secondary"));
+});

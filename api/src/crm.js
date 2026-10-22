@@ -41,6 +41,10 @@ function buildCrmBookingPayload(booking, event) {
   const serviceFee = round2(Math.max(total - supplier, 0));
   const flightNumbers = slices.flatMap((s) => (s.segments || []).map((seg) => `${seg.airline_code || ""}${seg.flight_number || ""}`)).filter(Boolean);
   const confirmed = booking.status === "CONFIRMED";
+  const secondaryContacts = passengers.flatMap((p) => {
+    const extra = [p.secondary_email, p.secondary_phone].filter(Boolean).join(", ");
+    return extra ? [`${p.given_name || ""} ${p.family_name || ""}`.trim() + `: ${extra}`] : [];
+  });
   return {
     event: event.type,
     event_id: event.event_id,
@@ -74,6 +78,7 @@ function buildCrmBookingPayload(booking, event) {
           : booking.status === "ON_HOLD"
             ? `ON HOLD with the airline (PNR ${booking.airline_pnr}), not paid or ticketed. Payment required by ${booking.payment_required_by}. Take payment, then use "Pay & issue tickets" in the OTA admin workspace. `
             : "") +
+        (secondaryContacts.length ? `Secondary contacts: ${secondaryContacts.join("; ")}. ` : "") +
         `OTA booking number ${booking.booking_reference}. ` +
         `Auto-created from OTA booking ${booking.ota_booking_id} (Duffel order ${booking.duffel_order_id || "none"}, ${booking.live_mode ? "live" : "test"} mode).`,
       passengers: passengers.map((p, i) => ({

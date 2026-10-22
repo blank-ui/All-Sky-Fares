@@ -104,6 +104,9 @@ function validatePassengers(list) {
       born_on: v.str(p, "born_on", { label: label("date of birth") }),
       email: v.email(p, "email"),
       phone_number: v.str(p, "phone_number", { min: 6, max: 40, label: label("phone number") }),
+      // Optional backups for our team; Duffel and the booking emails only use the primary ones.
+      secondary_email: v.email(p, "secondary_email", { required: false }) || null,
+      secondary_phone: v.str(p, "secondary_phone", { required: false, min: 6, max: 40, label: label("secondary phone") }) || null,
     };
   });
 }
@@ -381,3 +384,4 @@ module.exports.resolveSearch = resolveSearch;
 module.exports.offerRoute = offerRoute;
 module.exports.itineraryKey = itineraryKey;
 module.exports.searchFromOffer = searchFromOffer;
+module.exports.validatePassengers = validatePassengers;

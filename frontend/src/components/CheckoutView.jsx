@@ -19,6 +19,11 @@ const newPassenger = (user, isLead) => ({
 
 const MAX_PASSENGERS = 9;
 
+const SECONDARY_FIELDS = [
+  { key: "secondary_email", label: "Secondary Email", type: "email", placeholder: "another@example.com" },
+  { key: "secondary_phone", label: "Secondary Phone", type: "tel", placeholder: "+1 555 019 284" },
+];
+
 const newIdempotencyKey = () =>
   window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -289,7 +294,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                 </label>
 
                 <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-500 dark:text-white/70">
-                  Phone Number
+                  Primary Phone
                   <input
                     data-testid={`passenger-${i + 1}-phone`}
                     type="tel"
@@ -303,7 +308,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
               </div>
 
               <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-500 dark:text-white/70">
-                Email Address for E-Ticket
+                {i === 0 ? "Primary Email · e-ticket & invoice are sent here" : "Primary Email"}
                 <input
                   data-testid={`passenger-${i + 1}-email`}
                   type="email"
@@ -314,6 +319,49 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                   className="spatial-input w-full px-3.5 py-2.5 rounded-xl text-sm"
                 />
               </label>
+
+              {/* Optional backup contacts: shown once added; documents still go to the primary email only. */}
+              {SECONDARY_FIELDS.map((f) =>
+                p[f.key] === undefined ? null : (
+                  <label key={f.key} className="mt-4 flex flex-col gap-1.5 text-xs font-semibold text-slate-500 dark:text-white/70">
+                    <span className="flex items-center justify-between">
+                      {f.label}
+                      <button
+                        type="button"
+                        onClick={() => updatePassenger(i, f.key, undefined)}
+                        data-testid={`passenger-${i + 1}-${f.key}-remove`}
+                        className="text-[11px] font-semibold text-rose-500 dark:text-rose-400 hover:text-rose-600"
+                      >
+                        Remove
+                      </button>
+                    </span>
+                    <input
+                      data-testid={`passenger-${i + 1}-${f.key}`}
+                      type={f.type}
+                      value={p[f.key]}
+                      onChange={(e) => updatePassenger(i, f.key, e.target.value)}
+                      required
+                      placeholder={f.placeholder}
+                      className="spatial-input w-full px-3.5 py-2.5 rounded-xl text-sm"
+                    />
+                  </label>
+                )
+              )}
+              {SECONDARY_FIELDS.some((f) => p[f.key] === undefined) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SECONDARY_FIELDS.filter((f) => p[f.key] === undefined).map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => updatePassenger(i, f.key, "")}
+                      data-testid={`passenger-${i + 1}-add-${f.key}`}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-white/20 text-slate-500 dark:text-white/70 hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors"
+                    >
+                      + Add {f.label.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
             </fieldset>
           ))}
 
