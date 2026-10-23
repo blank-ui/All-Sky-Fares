@@ -57,7 +57,9 @@ app.use((req, res, next) => {
   next();
 });
 // Duffel webhooks need the raw body for signature checks, so they're mounted before the JSON parser.
-app.use("/api", require("./src/routes/webhooks")(logger));
+const duffelWebhooks = require("./src/routes/webhooks")(logger);
+app.use("/api", duffelWebhooks);
+app.use("/", duffelWebhooks);
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 

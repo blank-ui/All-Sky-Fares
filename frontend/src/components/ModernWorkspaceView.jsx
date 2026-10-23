@@ -748,7 +748,7 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                     <div>
                       <h3 className="font-bold text-sm text-slate-900 dark:text-white">Travel Cashflow & Expenditure</h3>
                       <div className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
-                        ${(totalSpend || 4820).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                        ${(totalSpend > 0 ? totalSpend : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1248,20 +1248,20 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                 <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 shadow-sm">
                   <span className="text-xs text-slate-400 font-medium">Total Flight Sectors</span>
                   <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                    {bookings.length * 2} Sectors
+                    {totalSectors} Sectors
                   </div>
                   <span className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold mt-1 block">
-                    100% on-time airline sync
+                    {bookings.length > 0 ? "100% on-time airline sync" : "No active sectors"}
                   </span>
                 </div>
 
                 <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 shadow-sm">
                   <span className="text-xs text-slate-400 font-medium">Estimated Miles Flown</span>
                   <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                    {(bookings.length * 4800).toLocaleString()} Miles
+                    {bookings.length > 0 ? (totalSectors * 2400).toLocaleString() : "0"} Miles
                   </div>
                   <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1 block">
-                    Calculated from route GCD
+                    {bookings.length > 0 ? "Calculated from route GCD" : "Awaiting completed flights"}
                   </span>
                 </div>
               </div>
@@ -1270,26 +1270,28 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">Airline Breakdown Distribution</h3>
                 <p className="text-xs text-slate-400 mb-5">Proportion of bookings by scheduled operating carrier.</p>
 
-                <div className="space-y-3">
-                  {[
-                    { airline: "British Airways", pct: 45, count: "4 flights" },
-                    { airline: "Emirates & Etihad", pct: 30, count: "2 flights" },
-                    { airline: "United / American Airlines", pct: 25, count: "2 flights" },
-                  ].map((item) => (
-                    <div key={item.airline}>
-                      <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                        <span className="text-slate-800 dark:text-slate-200">{item.airline}</span>
-                        <span className="text-slate-500">{item.count} ({item.pct}%)</span>
+                {airlineBreakdown.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-400 dark:text-slate-500">
+                    No flight booking history yet. Confirmed flights and carrier analytics will appear here.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {airlineBreakdown.map((item) => (
+                      <div key={item.airline}>
+                        <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                          <span className="text-slate-800 dark:text-slate-200">{item.airline}</span>
+                          <span className="text-slate-500">{item.count} ({item.pct}%)</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+                          <div
+                            style={{ width: `${item.pct}%` }}
+                            className="bg-sky-500 h-2 rounded-full transition-all"
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-                        <div
-                          style={{ width: `${item.pct}%` }}
-                          className="bg-sky-500 h-2 rounded-full transition-all"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

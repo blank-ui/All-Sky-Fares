@@ -92,3 +92,5 @@ backend/.env
 # Built website copied into the API for single-domain hosting (npm run build:web)
 api/public/
 deploy/out/
+
+api/scratch/

@@ -37,7 +37,9 @@ function paymentIntentIdOf(object, evt = {}) {
 module.exports = (logger) => {
   const r = express.Router();
 
-  r.post("/webhooks/duffel", express.raw({ type: "*/*", limit: "2mb" }), async (req, res) => {
+    const rawParser = express.raw({ type: "*/*", limit: "2mb" });
+
+  const processWebhook = async (req, res) => {
     const secret = cfg("DUFFEL_WEBHOOK_SECRET");
     const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
     if (!secret || !verifySignature(raw, req.get("x-duffel-signature"), secret)) {
@@ -75,11 +77,18 @@ module.exports = (logger) => {
         }
       }
       await db.insert("webhook_events", { id: String(eventId).slice(0, 64), type, object_id: orderId || intentId, received_at: utcNow() });
-      res.json({ received: true });
+      res.json({ received: true, ping: type === "ping.triggered" ? "pong" : undefined });
     } catch (exc) {
       logger.error(`Duffel webhook ${type} failed: ${exc.message}`);
       res.status(500).json({ detail: "Processing failed; Duffel will retry" });
     }
+  };
+
+  r.post("/webhooks/duffel", rawParser, processWebhook);
+  r.post("/duffel", rawParser, processWebhook);
+  r.post("/", rawParser, (req, res, next) => {
+    if (req.get("x-duffel-signature")) return processWebhook(req, res);
+    next();
   });
 
   return r;

@@ -53,6 +53,36 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
   const isCard = mode.mode === "card";
   const [payment, setPayment] = useState(null); // { clientToken, booking } once the card step starts
   const [cardCharged, setCardCharged] = useState(false); // card accepted; only our confirm is left
+  const [cardData, setCardData] = useState({
+    name: user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "",
+    number: "",
+    expiry: "",
+    cvc: "",
+    zip: "",
+  });
+
+  const cardBrand = React.useMemo(() => {
+    const clean = cardData.number.replace(/\D/g, "");
+    if (/^4/.test(clean)) return "Visa";
+    if (/^5[1-5]/.test(clean) || /^2[2-7]/.test(clean)) return "Mastercard";
+    if (/^3[47]/.test(clean)) return "Amex";
+    if (/^6(?:011|5)/.test(clean)) return "Discover";
+    return "Card";
+  }, [cardData.number]);
+
+  const handleCardNumberChange = (val) => {
+    const raw = val.replace(/\D/g, "").slice(0, 16);
+    const parts = raw.match(/[\s\S]{1,4}/g) || [];
+    setCardData((prev) => ({ ...prev, number: parts.join(" ") }));
+  };
+
+  const handleExpiryChange = (val) => {
+    let clean = val.replace(/\D/g, "").slice(0, 4);
+    if (clean.length > 2) {
+      clean = `${clean.slice(0, 2)}/${clean.slice(2)}`;
+    }
+    setCardData((prev) => ({ ...prev, expiry: clean }));
+  };
 
   const updatePassenger = (idx, key, val) => {
     setPassengers(passengers.map((p, i) => (i === idx ? { ...p, [key]: val } : p)));
@@ -93,9 +123,25 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
       const contact = isGuest
         ? { email: lead.email, first_name: lead.given_name, last_name: lead.family_name, phone: lead.phone_number }
         : undefined;
+      const cleanNum = cardData.number.replace(/\s+/g, "");
+      const cardPayload = cleanNum.length >= 13 ? {
+        number: cleanNum,
+        name: cardData.name || `${lead.given_name} ${lead.family_name}`.trim(),
+        expiry: cardData.expiry,
+        cvc: cardData.cvc,
+        postal_code: cardData.zip,
+      } : undefined;
+
       const d = await apiRequest("/my/checkout", {
         method: "POST",
-        body: { offer_id: offer.id, passengers, contact, idempotency_key: idempotencyKey.current, accept_terms: accepted },
+        body: {
+          offer_id: offer.id,
+          passengers,
+          contact,
+          idempotency_key: idempotencyKey.current,
+          accept_terms: accepted,
+          card: cardPayload,
+        },
       });
       if (d.checkout_token) guestToken.current = d.checkout_token;
       if (d.step === "payment") setPayment({ clientToken: d.client_token, booking: d.booking });
@@ -426,6 +472,115 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
             </div>
             
 
+            {/* Credit or Debit Card Payment Form */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-white/10 shadow-md space-y-4" data-testid="card-input-section">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-white/10">
+                <div className="flex items-center gap-2">
+                  <CreditCard size={18} className="text-sky-500" />
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Payment Method</h3>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                  <Lock size={12} className="text-emerald-500" />
+                  <span>256-Bit SSL Encrypted</span>
+                </div>
+              </div>
+
+              <div className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Cardholder Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Name as it appears on card"
+                    value={cardData.name}
+                    onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
+                    className="spatial-input w-full text-sm font-medium"
+                    data-testid="card-name-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Card Number
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      required
+                      maxLength={19}
+                      placeholder="4000 1234 5678 9010"
+                      value={cardData.number}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      className="spatial-input w-full text-sm font-mono tracking-wider pr-16"
+                      data-testid="card-number-input"
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-[10px] uppercase px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/40">
+                      {cardBrand}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Expires (MM/YY)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={5}
+                      placeholder="MM/YY"
+                      value={cardData.expiry}
+                      onChange={(e) => handleExpiryChange(e.target.value)}
+                      className="spatial-input w-full text-sm font-mono text-center"
+                      data-testid="card-expiry-input"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      CVC / CVV
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      maxLength={4}
+                      placeholder="CVC"
+                      value={cardData.cvc}
+                      onChange={(e) => setCardData({ ...cardData, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                      className="spatial-input w-full text-sm font-mono text-center"
+                      data-testid="card-cvc-input"
+                    />
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Billing ZIP
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ZIP Code"
+                      value={cardData.zip}
+                      onChange={(e) => setCardData({ ...cardData, zip: e.target.value.slice(0, 10) })}
+                      className="spatial-input w-full text-sm font-medium uppercase"
+                      data-testid="card-zip-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 border-t border-slate-100 dark:border-white/5">
+                <span>Accepted: Visa, Mastercard, Amex, Discover</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                  <ShieldCheck size={13} />
+                  Instant Ticket Issuance
+                </span>
+              </div>
+            </div>
+
             <div className="w-full block">
               <label className="flex items-start gap-3.5 cursor-pointer text-xs font-medium text-slate-700 dark:text-white/80 p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 select-none" data-testid="checkout-terms">
                 <input 
@@ -508,13 +663,11 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
               {busy ? (
                 <>
                   <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  <span>{isCard ? "Starting secure payment…" : "Reserving your seats…"}</span>
+                  <span>Authorizing payment & confirming flight…</span>
                 </>
               ) : (
                 <>
-                  <span>
-                    {isCard ? "Continue to payment" : "Reserve seats"} · {offer.currency} {offer.total.toFixed(2)}
-                  </span>
+                  <span>Pay & Confirm Flight · {offer.currency} {offer.total.toFixed(2)}</span>
                   <ArrowRight size={18} />
                 </>
               )}

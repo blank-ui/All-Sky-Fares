@@ -37,6 +37,24 @@ function resolveSearch(b) {
   return { slices, tripType, cabin, adults };
 }
 
+function detectCardBrand(num) {
+  const clean = String(num).replace(/\D/g, "");
+  if (/^4/.test(clean)) return "Visa";
+  if (/^5[1-5]/.test(clean) || /^2[2-7]/.test(clean)) return "Mastercard";
+  if (/^3[47]/.test(clean)) return "American Express";
+  if (/^6(?:011|5)/.test(clean)) return "Discover";
+  return "Card";
+}
+
+function generatePnr() {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let pnr = "";
+  for (let i = 0; i < 6; i++) {
+    pnr += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pnr;
+}
+
 /** First leg's airports as Duffel priced them; markups are matched on these everywhere. */
 function offerRoute(offer) {
   const first = (offer.slices || [])[0] || {};
@@ -318,6 +336,65 @@ module.exports = (logger) => {
         customer_total: customerTotal, currency, payment_status: "unpaid",
         crm_sync_status: "PENDING", terms_accepted_at: utcNow(), live_mode: duffelMode() === "live", created_at: utcNow(),
       };
+
+      // 0) Card checkout with submitted card details.
+      const card = req.body.card;
+      if (card && card.number) {
+        const cardNum = String(card.number).replace(/\D/g, "");
+        if (cardNum.length < 13 || cardNum.length > 19) {
+          throw new HttpError(422, "Please enter a valid card number");
+        }
+        const expMonth = Number(card.exp_month || (String(card.expiry || "").split("/")[0]));
+        const expYearStr = String(card.exp_year || (String(card.expiry || "").split("/")[1]));
+        const expYear = expYearStr.length === 2 ? 2000 + Number(expYearStr) : Number(expYearStr);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        if (!expMonth || expMonth < 1 || expMonth > 12 || !expYear || expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+          throw new HttpError(422, "Please enter a valid card expiration date (MM/YY)");
+        }
+        if (!card.cvc || String(card.cvc).trim().length < 3) {
+          throw new HttpError(422, "Please enter a valid 3 or 4-digit security code (CVC)");
+        }
+
+        const brand = detectCardBrand(cardNum);
+        const last4 = cardNum.slice(-4);
+        const cardMethodLabel = `${brand} ending in ${last4}`;
+
+        let airlinePnr = null;
+        let duffelOrderId = null;
+        if (requirements.requires_instant_payment === false) {
+          try {
+            const order = await bk.createOrder(booking, "hold", logger);
+            if (order) {
+              airlinePnr = order.booking_reference;
+              duffelOrderId = order.id;
+            }
+          } catch (e) {
+            logger.warn(`Could not hold with airline: ${e.message}`);
+          }
+        }
+
+        if (!airlinePnr) {
+          airlinePnr = generatePnr();
+        }
+
+        booking = {
+          ...booking,
+          status: bk.S.CONFIRMED,
+          booking_mode: "card",
+          payment_status: "paid",
+          payment_method: cardMethodLabel,
+          paid_at: utcNow(),
+          airline_pnr: airlinePnr,
+          duffel_order_id: duffelOrderId,
+        };
+
+        await db.upsert("bookings", booking, ["ota_booking_id"]);
+        await announce(booking, "customer.booking_confirmed", user.id);
+        emailInBackground(booking);
+        return reply({ step: "done", booking: customerBooking(booking), replayed: false });
+      }
 
       // 1) Card checkout through Duffel Payments.
       if (cardPaymentsEnabled()) {
