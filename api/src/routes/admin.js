@@ -228,6 +228,11 @@ function router(logger) {
     return doc;
   };
 
+  r.get("/admin/bookings/:id", requirePermission("bookings.read"), ah(async (req, res) => {
+    const doc = await staffBooking(req);
+    res.json({ booking: doc });
+  }));
+
   r.get("/admin/bookings/:id/:doc(eticket|invoice)", requirePermission("bookings.read"), ah(async (req, res) => {
     const doc = await staffBooking(req);
     if (req.query.format === "pdf") {

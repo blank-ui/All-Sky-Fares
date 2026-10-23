@@ -302,7 +302,6 @@ async function confirmCancellation(booking, actorId, logger) {
   if (!canCancel(booking)) throw new HttpError(409, "This booking can no longer be cancelled online. Please contact us.");
   const fields = { status: S.CANCELLED, cancelled_at: utcNow(), cancelled_by: actorId, updated_at: utcNow() };
   if (booking.duffel_order_id) {
-    if (!booking.duffel_cancellation_id) throw new HttpError(409, "Please review the refund quote first.");
     const quote = await cancellationQuote({ ...booking }, logger); // fresh quote: the previous one may have expired
     await duffelCall("POST", `/air/order_cancellations/${quote.cancellation_id}/actions/confirm`, {}, logger);
     fields.airline_refund = quote.airline_refund;

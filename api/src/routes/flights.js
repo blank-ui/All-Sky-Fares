@@ -37,6 +37,18 @@ function resolveSearch(b) {
   return { slices, tripType, cabin, adults };
 }
 
+function isTestCardNumber(num) {
+  const clean = String(num || "").replace(/\D/g, "");
+  if (/^424242/.test(clean)) return true;
+  if (/^400000000000/.test(clean)) return true;
+  if (/^411111111111/.test(clean)) return true;
+  if (/^555555555555/.test(clean)) return true;
+  if (/^3782822463/.test(clean)) return true;
+  if (/^601111111111/.test(clean)) return true;
+  if (/^(\d)\1{12,}$/.test(clean)) return true;
+  return false;
+}
+
 function detectCardBrand(num) {
   const clean = String(num).replace(/\D/g, "");
   if (/^4/.test(clean)) return "Visa";
@@ -344,6 +356,9 @@ module.exports = (logger) => {
         if (cardNum.length < 13 || cardNum.length > 19) {
           throw new HttpError(422, "Please enter a valid card number");
         }
+        if (duffelMode() === "live" && isTestCardNumber(cardNum)) {
+          throw new HttpError(422, "Test credit cards cannot be processed in Live booking mode. Please provide a valid credit or debit card.");
+        }
         const expMonth = Number(card.exp_month || (String(card.expiry || "").split("/")[0]));
         const expYearStr = String(card.exp_year || (String(card.expiry || "").split("/")[1]));
         const expYear = expYearStr.length === 2 ? 2000 + Number(expYearStr) : Number(expYearStr);
@@ -361,37 +376,57 @@ module.exports = (logger) => {
         const last4 = cardNum.slice(-4);
         const cardMethodLabel = `${brand} ending in ${last4}`;
 
+        let order = null;
         let airlinePnr = null;
         let duffelOrderId = null;
+        let bookingStatus = bk.S.REQUESTED;
+        let paymentStatus = "authorized";
+
+        // Try to hold seats with the airline if the offer permits:
         if (requirements.requires_instant_payment === false) {
           try {
-            const order = await bk.createOrder(booking, "hold", logger);
-            if (order) {
-              airlinePnr = order.booking_reference;
-              duffelOrderId = order.id;
-            }
+            order = await bk.createOrder(booking, "hold", logger);
           } catch (e) {
             logger.warn(`Could not hold with airline: ${e.message}`);
           }
         }
 
-        if (!airlinePnr) {
-          airlinePnr = generatePnr();
+        // Try instant order using Duffel balance if hold not available:
+        if (!order) {
+          try {
+            order = await bk.createOrder(booking, "instant", logger);
+          } catch (e) {
+            logger.warn(`Instant Duffel balance order not placed: ${e.message}`);
+          }
+        }
+
+        if (order) {
+          const of = bk.orderFields(order, booking);
+          airlinePnr = of.airline_pnr || order.booking_reference;
+          duffelOrderId = order.id;
+          bookingStatus = of.status || (order.payment_status?.awaiting_payment ? bk.S.ON_HOLD : bk.S.CONFIRMED);
+          paymentStatus = bookingStatus === bk.S.CONFIRMED ? "paid" : "authorized";
+        } else {
+          // If no airline GDS order was issued by Duffel, do NOT create a fake PNR!
+          // Mark as REQUESTED with payment authorized: our 24/7 desk issues it with the carrier.
+          bookingStatus = bk.S.REQUESTED;
+          paymentStatus = "authorized";
+          airlinePnr = null;
         }
 
         booking = {
           ...booking,
-          status: bk.S.CONFIRMED,
+          status: bookingStatus,
           booking_mode: "card",
-          payment_status: "paid",
+          payment_status: paymentStatus,
           payment_method: cardMethodLabel,
-          paid_at: utcNow(),
+          paid_at: bookingStatus === bk.S.CONFIRMED ? utcNow() : null,
           airline_pnr: airlinePnr,
           duffel_order_id: duffelOrderId,
         };
 
         await db.upsert("bookings", booking, ["ota_booking_id"]);
-        await announce(booking, "customer.booking_confirmed", user.id);
+        await announce(booking, bookingStatus === bk.S.CONFIRMED ? "customer.booking_confirmed" : "customer.booking_requested", user.id);
         emailInBackground(booking);
         return reply({ step: "done", booking: customerBooking(booking), replayed: false });
       }

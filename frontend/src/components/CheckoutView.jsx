@@ -473,21 +473,30 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
             
 
             {/* Credit or Debit Card Payment Form */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-white/10 shadow-md space-y-4" data-testid="card-input-section">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-white/10">
-                <div className="flex items-center gap-2">
-                  <CreditCard size={18} className="text-sky-500" />
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Payment Method</h3>
+            <div className="liquid-glass-card p-6 sm:p-7 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl space-y-5 relative overflow-hidden backdrop-blur-xl" data-testid="card-input-section">
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-sky-500/10 dark:bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-white/10 relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500/20 to-cyan-500/20 text-sky-600 dark:text-cyan-300 border border-sky-400/30 flex items-center justify-center shrink-0 shadow-sm">
+                    <CreditCard size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight">Payment Method</h3>
+                    <p className="text-xs text-slate-500 dark:text-white/60">Credit or debit card · Instant authorization</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <Lock size={12} className="text-emerald-500" />
-                  <span>256-Bit SSL Encrypted</span>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shadow-sm">
+                    <Lock size={12} className="text-emerald-500" />
+                    <span>256-Bit SSL Encrypted</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3.5">
+              <div className="space-y-4 relative">
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
                     Cardholder Name
                   </label>
                   <input
@@ -496,13 +505,13 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                     placeholder="Name as it appears on card"
                     value={cardData.name}
                     onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
-                    className="spatial-input w-full text-sm font-medium"
+                    className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-medium"
                     data-testid="card-name-input"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
                     Card Number
                   </label>
                   <div className="relative flex items-center">
@@ -513,10 +522,10 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                       placeholder="4000 1234 5678 9010"
                       value={cardData.number}
                       onChange={(e) => handleCardNumberChange(e.target.value)}
-                      className="spatial-input w-full text-sm font-mono tracking-wider pr-16"
+                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-mono tracking-wider pr-20"
                       data-testid="card-number-input"
                     />
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-[10px] uppercase px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/40">
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 shadow-sm">
                       {cardBrand}
                     </div>
                   </div>
@@ -524,7 +533,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
                       Expires (MM/YY)
                     </label>
                     <input
@@ -534,13 +543,13 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                       placeholder="MM/YY"
                       value={cardData.expiry}
                       onChange={(e) => handleExpiryChange(e.target.value)}
-                      className="spatial-input w-full text-sm font-mono text-center"
+                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-mono text-center tracking-wider"
                       data-testid="card-expiry-input"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
                       CVC / CVV
                     </label>
                     <input
@@ -550,13 +559,13 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                       placeholder="CVC"
                       value={cardData.cvc}
                       onChange={(e) => setCardData({ ...cardData, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                      className="spatial-input w-full text-sm font-mono text-center"
+                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-mono text-center tracking-wider"
                       data-testid="card-cvc-input"
                     />
                   </div>
 
                   <div className="col-span-2 sm:col-span-1">
-                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
                       Billing ZIP
                     </label>
                     <input
@@ -565,19 +574,25 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
                       placeholder="ZIP Code"
                       value={cardData.zip}
                       onChange={(e) => setCardData({ ...cardData, zip: e.target.value.slice(0, 10) })}
-                      className="spatial-input w-full text-sm font-medium uppercase"
+                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-medium uppercase tracking-wider text-center sm:text-left"
                       data-testid="card-zip-input"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 border-t border-slate-100 dark:border-white/5">
-                <span>Accepted: Visa, Mastercard, Amex, Discover</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                  <ShieldCheck size={13} />
-                  Instant Ticket Issuance
-                </span>
+              <div className="pt-3 flex flex-wrap items-center justify-between gap-3 text-xs border-t border-slate-200 dark:border-white/10 relative">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 mr-1">Accepted:</span>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">VISA</span>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">MASTERCARD</span>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">AMEX</span>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">DISCOVER</span>
+                </div>
+                <div className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="shrink-0" />
+                  <span>Zero-Fraud Liability Guarantee</span>
+                </div>
               </div>
             </div>
 
@@ -792,7 +807,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
 const STATUS_COPY = {
   CONFIRMED: { eyebrow: "Booking confirmed", title: "You're all set for takeoff!", text: "Your booking is paid and confirmed with the airline. Your e-ticket and invoice are ready below." },
   ON_HOLD: { eyebrow: "Seats reserved with the airline", title: "Your seats are on hold", text: "Your airline booking code is live. Our reservations team will contact you to take payment; tickets are issued once it's paid." },
-  REQUESTED: { eyebrow: "Booking request received", title: "We've got your request", text: "This airline needs payment straight away, so our team will call or email you shortly to confirm the fare and take payment. Prices and seats aren't held until then." },
+  REQUESTED: { eyebrow: "Booking request received", title: "We've got your booking request", text: "Your flight reservation details and card authorization have been safely received. Our 24/7 ticketing concierge is finalizing seat confirmation with the carrier and will issue your e-ticket documents shortly." },
 };
 
 export function DocumentButtons({ booking, staffId, guestToken }) {

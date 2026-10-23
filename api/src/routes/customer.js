@@ -122,7 +122,8 @@ function router(logger = console) {
   }));
 
   const ownBooking = async (req) => {
-    const doc = await db.fetchOne("SELECT * FROM bookings WHERE booking_reference = ? AND user_id = ?", req.params.reference, req.user.id);
+    const ref = req.params.reference;
+    const doc = await db.fetchOne("SELECT * FROM bookings WHERE (booking_reference = ? OR ota_booking_id = ?) AND user_id = ?", ref, ref, req.user.id);
     if (!doc) throw new HttpError(404, "Booking not found");
     return doc;
   };

@@ -40,9 +40,16 @@ module.exports = (logger) => {
     const rawParser = express.raw({ type: "*/*", limit: "2mb" });
 
   const processWebhook = async (req, res) => {
-    const secret = cfg("DUFFEL_WEBHOOK_SECRET");
+    let secret = cfg("DUFFEL_WEBHOOK_SECRET");
     const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
-    if (!secret || !verifySignature(raw, req.get("x-duffel-signature"), secret)) {
+    const sig = req.get("x-duffel-signature");
+    if (!secret || !verifySignature(raw, sig, secret)) {
+      // Refresh in-memory secrets from DB in case secret was rotated/updated
+      const { loadSecrets } = require("../secrets");
+      await loadSecrets(logger);
+      secret = cfg("DUFFEL_WEBHOOK_SECRET");
+    }
+    if (!secret || !verifySignature(raw, sig, secret)) {
       logger.warn("Rejected Duffel webhook with a missing or invalid signature");
       return res.status(401).json({ detail: "Invalid signature" });
     }

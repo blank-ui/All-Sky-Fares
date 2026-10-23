@@ -119,9 +119,10 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
 
   const handleOpenDetails = (booking) => {
     setSelectedBookingForModal(booking);
-    const bookingRef = booking?.booking_reference || booking?.id;
+    const bookingRef = booking?.booking_reference || booking?.ota_booking_id || booking?.id;
     if (bookingRef) {
-      apiRequest(`/my/bookings/${encodeURIComponent(bookingRef)}`)
+      const endpoint = isStaff ? `/admin/bookings/${encodeURIComponent(bookingRef)}` : `/my/bookings/${encodeURIComponent(bookingRef)}`;
+      apiRequest(endpoint)
         .then((data) => {
           if (data?.booking) {
             setSelectedBookingForModal(data.booking);
@@ -311,17 +312,18 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
     if (!cancelModalBooking) return;
     setCancelBusy(true);
     setCancelMessage({ type: "", text: "" });
-    const ref = cancelModalBooking.booking_reference || cancelModalBooking.id;
+    const idOrRef = cancelModalBooking.ota_booking_id || cancelModalBooking.booking_reference || cancelModalBooking.id;
+    const ref = cancelModalBooking.booking_reference || idOrRef;
     try {
       const endpoint = isStaff 
-        ? `/admin/bookings/${cancelModalBooking.id}/cancel/confirm`
+        ? `/admin/bookings/${idOrRef}/cancel/confirm`
         : `/my/bookings/${ref}/cancel/confirm`;
       await apiRequest(endpoint, { method: "POST" });
       setCancelMessage({ type: "success", text: `Booking ${ref} was successfully cancelled.` });
       // Update local state immediately
       setBookings((prev) =>
         prev.map((b) =>
-          (b.booking_reference === ref || b.id === ref) ? { ...b, status: "CANCELLED" } : b
+          (b.booking_reference === ref || b.ota_booking_id === idOrRef || b.id === idOrRef) ? { ...b, status: "CANCELLED" } : b
         )
       );
       setTimeout(() => {
