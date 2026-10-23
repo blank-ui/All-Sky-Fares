@@ -581,7 +581,7 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                 {activeTab === "dashboard" ? "Travel Dashboard" : activeTab.replace(/([A-Z])/g, " $1")}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                "Track your journeys, bookings, and electronic travel documents in one place."
+                Track your journeys, bookings, and electronic travel documents in one place.
               </p>
             </div>
 
@@ -590,7 +590,7 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
               {isStaff && (
                 <button
                   onClick={() => navigate("adminConsole")}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all cursor-pointer shrink-0"
+                  className="shrink-0 px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all cursor-pointer shrink-0"
                   title="Switch to Staff Admin Console"
                 >
                   <ShieldCheck size={14} />

@@ -18,7 +18,7 @@ const POPULAR_AIRPORTS = [
   { code: "LAX", city: "Los Angeles", name: "Los Angeles Intl" }
 ];
 
-export function FlightSearchBox({ initial = {}, onSearch }) {
+export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
   const [tripType, setTripType] = useState("round_trip");
   const [common, setCommon] = useState({ 
     cabin: initial.cabin || "economy", 
@@ -50,7 +50,10 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
       if (initial.destination) setRtForm(prev => ({ ...prev, destination: initial.destination }));
       if (initial.departure_date) setRtForm(prev => ({ ...prev, departure_date: initial.departure_date }));
       if (initial.return_date) setRtForm(prev => ({ ...prev, return_date: initial.return_date }));
-      if (initial.trip_type === "one_way") {
+      if (initial.trip_type === "multi_city" && Array.isArray(initial.slices) && initial.slices.length > 1) {
+        setTripType("multi_city");
+        setMcLegs(initial.slices.map((s) => ({ origin: s.origin, destination: s.destination, departure_date: s.departure_date })));
+      } else if (initial.trip_type === "one_way") {
         setTripType("one_way");
       } else {
         setTripType("round_trip");
@@ -121,7 +124,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
 
   return (
     <div 
-      className="liquid-glass rounded-3xl p-4 sm:p-8 shadow-2xl relative z-20 border border-white/50 dark:border-white/10"
+      className={embedded ? "relative z-20" : "liquid-glass rounded-3xl p-4 sm:p-8 shadow-2xl relative z-20 border border-white/50 dark:border-white/10"}
       data-testid="flight-search-widget"
     >
       {/* Search Header: Trip Type Tabs + Cabin Quick Selector */}
@@ -163,7 +166,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-12 gap-3 items-end">
             {/* Origin Airport */}
-            <div className={tripType === "round_trip" ? "col-span-1 lg:col-span-2 xl:col-span-3" : "col-span-1 lg:col-span-3"}>
+            <div className="col-span-1 lg:col-span-3">
               <AirportAutocomplete
                 value={rtForm.origin}
                 onChange={(code) => setRtForm((prev) => ({ ...prev, origin: code }))}
@@ -189,7 +192,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
             </div>
 
             {/* Destination Airport */}
-            <div className={tripType === "round_trip" ? "col-span-1 lg:col-span-2 xl:col-span-3" : "col-span-1 lg:col-span-3"}>
+            <div className="col-span-1 lg:col-span-3">
               <AirportAutocomplete
                 value={rtForm.destination}
                 onChange={(code) => setRtForm((prev) => ({ ...prev, destination: code }))}
@@ -202,9 +205,9 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
             </div>
 
             {/* Departure Date */}
-            <div className={tripType === "round_trip" ? "col-span-1 lg:col-span-3 xl:col-span-2" : "col-span-1 lg:col-span-4 xl:col-span-3"}>
+            <div className={tripType === "round_trip" ? "col-span-1 lg:col-span-2" : "col-span-1 lg:col-span-4 xl:col-span-3"}>
               <label 
-                className="block text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-slate-400 mb-1"
+                className="block text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-slate-400"
                 data-testid="departure-date-field"
               >
                 Depart
@@ -216,7 +219,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
                     type="date"
                     value={rtForm.departure_date}
                     onChange={(e) => setRtForm({ ...rtForm, departure_date: e.target.value })}
-                    className="spatial-input w-full pl-9 pr-2 text-xs font-semibold h-12"
+                    className="spatial-input date-with-icon w-full pl-9 pr-2 text-xs font-semibold h-12"
                     required
                   />
                 </div>
@@ -225,9 +228,9 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
 
             {/* Return Date (Round Trip only) */}
             {tripType === "round_trip" && (
-              <div className="col-span-1 lg:col-span-3 xl:col-span-2">
+              <div className="col-span-1 lg:col-span-2">
                 <label 
-                  className="block text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-slate-400 mb-1"
+                  className="block text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-slate-400"
                   data-testid="return-date-field"
                 >
                   Return
@@ -239,7 +242,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
                       type="date"
                       value={rtForm.return_date}
                       onChange={(e) => setRtForm({ ...rtForm, return_date: e.target.value })}
-                      className="spatial-input w-full pl-9 pr-2 text-xs font-semibold h-12"
+                      className="spatial-input date-with-icon w-full pl-9 pr-2 text-xs font-semibold h-12"
                       required
                     />
                   </div>
@@ -427,6 +430,7 @@ export function FlightSearchBox({ initial = {}, onSearch }) {
                   <option value="economy">Economy</option>
                   <option value="premium_economy">Premium Economy</option>
                   <option value="business">Business</option>
+                  <option value="first">First</option>
                 </select>
               </label>
 

@@ -269,14 +269,15 @@ export function AdminWorkspaceView({ user, navigate, initialTab = "overview" }) 
               <div className="truncate text-xs sm:text-sm text-slate-500 dark:text-white/60">Signed in as {user?.first_name || user?.email}</div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex w-full gap-2 md:w-auto">
             <button
-              className="inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-500/25 transition-all cursor-pointer"
+              className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-500/25 transition-all cursor-pointer"
               onClick={() => navigate("account")}
               title="Switch to Modern Dashboard"
             >
               <LayoutGrid size={15} />
-              <span>Modern Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
+              <span className="hidden sm:inline">Modern Dashboard</span>
             </button>
             <button className={btn.secondary} onClick={reloadAll} aria-label="Refresh all data">
               <RefreshCw size={15} /> <span className="hidden sm:inline">Refresh</span>
@@ -481,8 +482,8 @@ function MarkupsSection() {
       {/* Top Bento Split: Form & Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Form Card (7 cols) */}
-        <div className="lg:col-span-7 bento-card p-6 border border-slate-200/90 dark:border-white/10 relative">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-7 bento-card p-4 sm:p-6 border border-slate-200/90 dark:border-white/10 relative">
+          <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Sparkles size={16} className="text-orange-500" />
@@ -590,9 +591,9 @@ function MarkupsSection() {
         </div>
 
         {/* Hub Card (5 cols) */}
-        <div className="lg:col-span-5 bento-card p-6 border border-slate-200/90 dark:border-white/10 flex flex-col justify-between">
+        <div className="lg:col-span-5 bento-card p-4 sm:p-6 border border-slate-200/90 dark:border-white/10 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Activity size={16} className="text-sky-500" />
                 <span>Pricing Inventory Sync</span>
@@ -661,7 +662,7 @@ function MarkupsSection() {
                 New routes will be appended and existing matching routes will be updated.
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button className={btn.secondary} onClick={() => setPreview(null)}>Cancel</button>
               <button className={btn.primary} onClick={confirmImport} disabled={busy === "import"} data-testid="markups-import-confirm">
                 {busy === "import" ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
@@ -923,12 +924,13 @@ function BookingsSection({ initialFilter = "ALL", onOpenDetails }) {
 
         {/* Filters and search bar */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5">
+          {/* One swipeable row on phones instead of four wrapped lines of chips */}
+          <div className="-mx-1 px-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none md:flex-wrap md:overflow-visible">
             {["ALL", "CONFIRMED", "ON_HOLD", "REQUESTED", "AWAITING_PAYMENT", "CANCELLED", "EXPIRED", "FAILED"].map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 whitespace-nowrap px-3 py-2 md:py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   filterStatus === st
                     ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
                     : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
@@ -957,8 +959,65 @@ function BookingsSection({ initialFilter = "ALL", onOpenDetails }) {
           <Empty icon={Ticket} title="No bookings recorded">Customer reservations will appear here automatically.</Empty>
         )}
 
+        {!state.loading && bookings.length > 0 && filtered.length === 0 && (
+          <p className="py-8 text-center text-sm text-slate-500 dark:text-white/50">No bookings match this filter.</p>
+        )}
+
+        {/* Phones: one card per booking, so nothing hides off-screen to the right */}
         {filtered.length > 0 && (
-          <div className="relative overflow-x-auto rounded-xl border border-slate-200/90 dark:border-white/10">
+          <div className="md:hidden space-y-3" data-testid="bookings-cards">
+            {filtered.map((b) => {
+              const first = (b.slices || [])[0] || {};
+              return (
+                <div key={b.ota_booking_id} className="rounded-2xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-slate-900 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <button type="button" onClick={() => onOpenDetails && onOpenDetails(b)} className="flex items-center gap-2.5 min-w-0 text-left">
+                      <AirlineLogo booking={b} size={36} />
+                      <div className="min-w-0">
+                        <div className="font-mono font-extrabold text-slate-900 dark:text-white">{b.booking_reference || "—"}</div>
+                        <div className="text-[11px] text-slate-500">PNR <span className="font-mono font-bold text-sky-600 dark:text-sky-400">{b.airline_pnr || "—"}</span></div>
+                      </div>
+                    </button>
+                    <div className="text-right shrink-0">
+                      <div className="font-extrabold text-slate-900 dark:text-white">{money(b.customer_total, b.currency)}</div>
+                      {b.customer_total != null && (
+                        <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">+{money(b.customer_total - (b.supplier_amount || 0), b.currency)} margin</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-white truncate">{b.customer_name || "—"}</div>
+                      <div className="text-[11px] text-slate-400 truncate">{b.email}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {first.origin || "—"} → {first.destination || "—"}{(b.slices || []).length > 1 ? ` +${b.slices.length - 1}` : ""}
+                      </div>
+                      <div className="text-[11px] text-slate-400">{when(b.created_at)}</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge tone={statusTone[b.status]}>{(b.status || "").replace("_", " ")}</Badge>
+                    <Badge tone={syncTone[b.crm_sync_status]}>CRM {b.crm_sync_status || "—"}</Badge>
+                    {b.payment_status === "paid" && <span className="text-[11px] text-slate-400 font-semibold">{b.payment_method || "Paid"}</span>}
+                  </div>
+                  {b.status === "ON_HOLD" && b.payment_required_by && (
+                    <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <Clock size={11} /> Pay by {when(b.payment_required_by)}
+                    </div>
+                  )}
+                  <div className="pt-3 border-t border-slate-100 dark:border-white/5 [&_a]:!h-9 [&_button]:!h-9 [&_a]:!px-3 [&_button]:!px-3 [&_a]:!text-xs [&_button]:!text-xs [&>div]:justify-start">
+                    <BookingActionsRow b={b} onChange={load} setNotice={setNotice} onOpenDetails={onOpenDetails} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {filtered.length > 0 && (
+          <div className="hidden md:block relative overflow-x-auto rounded-xl border border-slate-200/90 dark:border-white/10">
             <table className="w-full">
               <thead className="bg-slate-50/75 dark:bg-white/[0.03]">
                 <tr>
@@ -1311,7 +1370,7 @@ function IntegrationsSection({ user: propUser }) {
                   className="bento-card p-5 border border-slate-200/90 dark:border-white/10 flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-1.5">
                         <span>{c.label || c.name}</span>
                         {(c.requiresSuperAdmin || c.requires_super_admin) && (
@@ -1400,7 +1459,7 @@ function IntegrationsSection({ user: propUser }) {
                 className="bento-card p-5 border border-slate-200/90 dark:border-white/10 flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
                       {item.provider}
                     </div>
@@ -1491,7 +1550,7 @@ function CredentialsSection() {
                     </div>
                     <div className="text-xs text-slate-500 dark:text-white/50 mt-0.5">{SECRET_HELP[s.name]}</div>
                   </div>
-                  <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2.5 sm:shrink-0">
                     {s.preview && (
                       <code className="rounded-lg bg-slate-100 dark:bg-white/10 px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 dark:text-slate-200">
                         {s.preview}

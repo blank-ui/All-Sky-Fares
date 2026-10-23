@@ -3,7 +3,7 @@ const db = require("../db");
 const v = require("../validate");
 const { cfg, bookingMode, duffelMode, cardPaymentsEnabled } = require("../secrets");
 const bk = require("../bookings");
-const { duffelCall, airlineLogo, normalizeSlices } = require("../duffel");
+const { duffelCall, airlineLogo, normalizeSlices, offerConditions, summarizeSeatMaps } = require("../duffel");
 const { loadMarkups, priceOffer } = require("../pricing");
 const { optionalUser, audit, rateLimit, clientIp, USER_COLUMNS } = require("../auth");
 const { emailBookingInBackground } = require("../notify");
@@ -88,6 +88,8 @@ async function presentOffer(offer, markups) {
     expires_at: offer.expires_at || null,
     slices: normalizeSlices(offer.slices || []),
     passenger_count: travellers,
+    conditions: offerConditions(offer),
+    emissions_kg: offer.total_emissions_kg != null ? Number(offer.total_emissions_kg) : null,
   };
 }
 
@@ -154,6 +156,20 @@ module.exports = (logger) => {
     const offer = (await duffelCall("GET", `/air/offers/${encodeURIComponent(req.params.offerId)}?return_available_services=false`, undefined, logger)).data || {};
     if (!offer.id) throw new HttpError(404, "Offer not found");
     res.json(await presentOffer(offer));
+  }));
+
+  // Loaded when a traveller opens a fare's details: seat maps are a separate, slower Duffel call.
+  r.get("/offers/:offerId/seats", ah(async (req, res) => {
+    await rateLimit(`offer:${clientIp(req)}`, 120, 60, "Too many requests from this network. Please try again later.");
+    let maps;
+    try {
+      maps = (await duffelCall("GET", `/air/seat_maps?offer_id=${encodeURIComponent(req.params.offerId)}`, undefined, logger)).data || [];
+    } catch (exc) {
+      if (exc.status === 400) return res.json({ supported: false, segments: [] }); // airline doesn't sell seats through Duffel
+      throw exc;
+    }
+    const segments = summarizeSeatMaps(maps);
+    res.json({ supported: segments.some((s) => s.available > 0), segments });
   }));
 
   // A fare is priced for a fixed number of travellers, so a different count needs a new Duffel offer for the same flights.

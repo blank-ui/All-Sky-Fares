@@ -239,3 +239,19 @@ test("secondary email and phone are optional, validated, and reach the CRM notes
   assert.ok(p.booking.internalNotes.includes("Secondary contacts: Jane Doe: office@example.com, +15550009999."));
   assert.ok(!crm.buildCrmBookingPayload(BOOKING, EVENT).booking.internalNotes.includes("Secondary"));
 });
+
+const duffel = require("../src/duffel");
+
+test("fare rules, amenities and seat maps are read from Duffel's shapes", () => {
+  assert.deepEqual(duffel.offerConditions({ conditions: { change_before_departure: { allowed: true, penalty_amount: "40.00", penalty_currency: "USD" }, refund_before_departure: null } }),
+    { change: { allowed: true, penalty: 40, currency: "USD" }, refund: null });
+  const [slice] = duffel.normalizeSlices([{ fare_brand_name: "Basic", conditions: { advance_seat_selection: { allowed: false } }, segments: [
+    { passengers: [{ cabin_class: "economy", baggages: [{ type: "checked", quantity: 1 }], cabin: { marketing_name: "Economy", amenities: { wifi: { available: true, cost: "paid" }, seat: { pitch: "30", legroom: "n/a" }, power: { available: false } } } }] },
+  ] }]);
+  assert.equal(slice.fare_brand, "Basic");
+  assert.deepEqual(slice.advance_seat_selection, { allowed: false, penalty: null, currency: null });
+  assert.deepEqual(slice.segments[0].amenities, { wifi: { available: true, cost: "paid" }, power: false, seat_pitch_in: 30, legroom: null });
+  const seat = (amount) => ({ type: "seat", available_services: [{ total_amount: amount, total_currency: "USD" }] });
+  assert.deepEqual(duffel.summarizeSeatMaps([{ segment_id: "seg_1", cabins: [{ rows: [{ sections: [{ elements: [seat("0.00"), seat("25.00"), seat("12.50"), { type: "seat", available_services: [] }, { type: "lavatory" }] }] }] }] }]),
+    [{ segment_id: "seg_1", available: 3, free: 1, min_price: 12.5, max_price: 25, currency: "USD" }]);
+});

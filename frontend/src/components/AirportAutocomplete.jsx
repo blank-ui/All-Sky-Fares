@@ -28,6 +28,8 @@ export function AirportAutocomplete({
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  // True once the user types; until then the box shows "City (CODE)", which isn't a search term.
+  const [typed, setTyped] = useState(false);
 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
@@ -52,11 +54,11 @@ export function AirportAutocomplete({
 
   // Compute search suggestions
   const suggestions = React.useMemo(() => {
-    if (!isEditing || !query.trim()) {
+    if (!isEditing || !typed || !query.trim()) {
       return searchAirports("", 8);
     }
     return searchAirports(query, 8);
-  }, [query, isEditing]);
+  }, [query, isEditing, typed]);
 
   // Reset active index when suggestions change
   useEffect(() => {
@@ -109,6 +111,7 @@ export function AirportAutocomplete({
   };
 
   const handleFocus = () => {
+    setTyped(false);
     setIsEditing(true);
     setOpen(true);
     // If the input already has "City (CODE)", pre-select it so typing immediately replaces it
@@ -119,6 +122,7 @@ export function AirportAutocomplete({
 
   const handleInputChange = (e) => {
     setQuery(e.target.value);
+    setTyped(true);
     setIsEditing(true);
     if (!open) setOpen(true);
   };
@@ -171,6 +175,7 @@ export function AirportAutocomplete({
   const handleClear = (e) => {
     e.stopPropagation();
     setQuery("");
+    setTyped(true);
     setIsEditing(true);
     onChange("", null);
     if (inputRef.current) {
@@ -180,7 +185,7 @@ export function AirportAutocomplete({
 
   // Helper to highlight matching characters
   const highlightMatch = (text, q) => {
-    if (!text || !q || !isEditing) return text;
+    if (!text || !q || !isEditing || !typed) return text;
     const cleanQ = q.trim().toLowerCase();
     if (!cleanQ || cleanQ.length > text.length) return text;
     
@@ -261,7 +266,7 @@ export function AirportAutocomplete({
           {/* Header Strip */}
           <div className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/80 dark:bg-slate-950/50 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
             <span>
-              {query && isEditing ? `Suggestions for "${query}"` : "Popular Global Destinations"}
+              {query && isEditing && typed ? `Suggestions for "${query}"` : "Popular Global Destinations"}
             </span>
             <span className="hidden sm:inline font-mono text-[9px] opacity-70">
               [↑↓ Navigate • ↵ Select]
