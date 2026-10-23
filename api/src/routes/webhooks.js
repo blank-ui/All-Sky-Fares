@@ -14,10 +14,11 @@ const TOLERANCE_SECONDS = 5 * 60;
 
 function verifySignature(raw, header, secret) {
   const parts = Object.fromEntries(String(header || "").split(",").map((kv) => kv.trim().split("=")));
-  if (!parts.t || !parts.v1) return false;
+  const sig = parts.v2 || parts.v1;
+  if (!parts.t || !sig) return false;
   if (Math.abs(Date.now() / 1000 - Number(parts.t)) > TOLERANCE_SECONDS) return false;
   const expected = crypto.createHmac("sha256", secret).update(`${parts.t}.`).update(raw).digest("hex");
-  return timingSafeEqualStr(expected, parts.v1);
+  return timingSafeEqualStr(expected, sig);
 }
 
 /** Pulls the order id out of the different event payload shapes. */

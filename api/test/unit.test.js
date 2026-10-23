@@ -152,6 +152,7 @@ test("Duffel webhook signatures", () => {
   const t = String(Math.floor(Date.now() / 1000));
   const sig = crypto.createHmac("sha256", "secret").update(`${t}.`).update(raw).digest("hex");
   assert.equal(verifySignature(raw, `t=${t},v1=${sig}`, "secret"), true);
+  assert.equal(verifySignature(raw, `t=${t},v2=${sig}`, "secret"), true);
   assert.equal(verifySignature(raw, `t=${t},v1=${"0".repeat(64)}`, "secret"), false);
   assert.equal(verifySignature(raw, `t=${Number(t) - 3600},v1=${sig}`, "secret"), false, "old timestamps are rejected");
 });
