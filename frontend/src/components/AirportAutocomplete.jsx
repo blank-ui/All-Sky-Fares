@@ -83,6 +83,8 @@ export function AirportAutocomplete({
   const handleCommit = (forcedItem) => {
     setOpen(false);
     setIsEditing(false);
+    // Narrow fields keep the scroll from typing, hiding the start of "New York (JFK)".
+    if (inputRef.current) inputRef.current.scrollLeft = 0;
 
     if (forcedItem) {
       onChange(forcedItem.code, forcedItem);
@@ -264,7 +266,7 @@ export function AirportAutocomplete({
       {/* ----------------- GOOGLE FLIGHTS-STYLE AUTOCOMPLETE DROPDOWN ----------------- */}
       {open && (
         <div
-          className="absolute top-full left-0 right-0 sm:min-w-[360px] z-[60] mt-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-sky-950/20 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          className={`absolute top-full ${isOrigin ? "left-0" : "right-0"} w-[calc(100vw-4rem)] max-w-[420px] sm:w-full sm:max-w-none sm:min-w-[360px] z-[60] mt-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-sky-950/20 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
           style={{ maxHeight: "min(420px, 70vh)" }}
         >
           {/* Header Strip */}

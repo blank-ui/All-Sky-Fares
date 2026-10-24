@@ -145,14 +145,13 @@ function TawkWidget({ user }) {
 
 function SalesDealPopup({ view }) {
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  // Clear legacy closed flag so reloading allows user to see/test popup
-  useEffect(() => {
+  const [dismissed, setDismissed] = useState(() => {
     try {
-      sessionStorage.removeItem("asf-deals-popup-closed");
-    } catch (e) {}
-  }, []);
+      return sessionStorage.getItem("asf-deals-popup-closed") === "1";
+    } catch (e) {
+      return false;
+    }
+  });
 
   // The floating pill (and other components) can open it on demand.
   useEffect(() => {
@@ -168,7 +167,13 @@ function SalesDealPopup({ view }) {
       return undefined;
     }
     if (dismissed) return undefined;
-    const timer = setTimeout(() => setOpen(true), 3500);
+    // Don't interrupt someone filling in the search form; try again a bit later.
+    const tryOpen = () => {
+      const el = document.activeElement;
+      if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) timer = setTimeout(tryOpen, 5000);
+      else setOpen(true);
+    };
+    let timer = setTimeout(tryOpen, 3500);
 
     return () => clearTimeout(timer);
   }, [view, dismissed]);
@@ -185,6 +190,9 @@ function SalesDealPopup({ view }) {
   const handleClose = () => {
     setOpen(false);
     setDismissed(true);
+    try {
+      sessionStorage.setItem("asf-deals-popup-closed", "1");
+    } catch (e) {}
   };
 
   // Close popup when Escape key is pressed
