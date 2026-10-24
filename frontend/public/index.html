@@ -3,13 +3,34 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="AllSkyFares App" />
+        <meta name="theme-color" content="#020617" />
+        <meta name="description" content="Compare live airline fares from the world's top airlines, with taxes and fees included and a 24/7 travel desk." />
         <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon.png" />
-        <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
+        <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <script>
+          // Home page only: start downloading the first hero photo before the app's JavaScript asks for it.
+          // Must match the first slide in src/components/HeroSlideshow.jsx.
+          window.__heroSet = [480, 750, 1080, 1600, 2200].map(function (w) { return "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=" + w + "&q=" + (w > 1080 ? 40 : 55) + " " + w + "w"; }).join(", ");
+          if (location.pathname === "/") {
+            var l = document.createElement("link");
+            l.rel = "preload"; l.as = "image"; l.fetchPriority = "high";
+            l.imageSrcset = window.__heroSet; l.imageSizes = "100vw";
+            document.head.appendChild(l);
+          }
+        </script>
+        <!-- Self-hosted Plus Jakarta Sans (SIL OFL, see fonts/OFL.txt): one variable file for every weight.
+             The system font shows until it arrives. -->
+        <link rel="preload" href="%PUBLIC_URL%/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
+        <style>
+          @font-face {
+            font-family: "Plus Jakarta Sans";
+            font-style: normal;
+            font-weight: 200 800;
+            font-display: swap;
+            src: url("%PUBLIC_URL%/fonts/plus-jakarta-sans-latin.woff2") format("woff2");
+          }
+        </style>
         <!--
         manifest.json provides metadata used when your web app is installed on a
         user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/

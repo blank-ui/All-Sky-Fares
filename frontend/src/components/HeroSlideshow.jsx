@@ -88,6 +88,12 @@ export const DESTINATIONS = [
   }
 ];
 
+// Unsplash resizes on request; phones get a phone-sized photo instead of the 1920px original.
+const HERO_WIDTHS = [480, 750, 1080, 1600, 2200];
+// Large sizes sit under dark overlays, so lower quality isn't visible there. index.html builds the same URLs.
+const heroSrc = (url, w) => url.replace(/w=\d+&q=\d+/, `w=${w}&q=${w > 1080 ? 40 : 55}`);
+const heroSrcSet = (url) => HERO_WIDTHS.map((w) => `${heroSrc(url, w)} ${w}w`).join(", ");
+
 export function HeroSlideshow({ activeIndex: controlledIndex, onChangeIndex: controlledOnChange, onSelectRoute }) {
   const [internalIndex, setInternalIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -95,6 +101,17 @@ export function HeroSlideshow({ activeIndex: controlledIndex, onChangeIndex: con
   const activeIndex = controlledIndex !== undefined ? controlledIndex : internalIndex;
   const onChangeIndex = controlledOnChange || setInternalIndex;
   const current = DESTINATIONS[activeIndex] || DESTINATIONS[0];
+  // Slides already shown stay mounted, so going back doesn't fetch the photo again.
+  const [seen, setSeen] = useState(() => new Set([0]));
+  // Fetch the next photo only after the first screen has loaded, so it doesn't compete with it.
+  const [warm, setWarm] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWarm(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    setSeen((prev) => (prev.has(activeIndex) ? prev : new Set(prev).add(activeIndex)));
+  }, [activeIndex]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -121,6 +138,8 @@ export function HeroSlideshow({ activeIndex: controlledIndex, onChangeIndex: con
       {/* Background slide images with Ken Burns zoom animation */}
       {DESTINATIONS.map((dest, idx) => {
         const isActive = idx === activeIndex;
+        // Only the photo on screen and the next one are downloaded; the rest load as the slideshow reaches them.
+        if (!isActive && !seen.has(idx) && !(warm && idx === (activeIndex + 1) % DESTINATIONS.length)) return null;
         return (
           <div
             key={dest.id}
@@ -128,11 +147,16 @@ export function HeroSlideshow({ activeIndex: controlledIndex, onChangeIndex: con
               isActive ? "opacity-100 z-0" : "opacity-0 -z-10"
             }`}
           >
-            <div
-              className={`w-full h-full bg-cover bg-center transition-transform duration-[7000ms] ease-out ${
+            <img
+              src={heroSrc(dest.image, 1600)}
+              srcSet={heroSrcSet(dest.image)}
+              sizes="100vw"
+              alt=""
+              decoding="async"
+              fetchPriority={idx === 0 ? "high" : "low"}
+              className={`w-full h-full object-cover object-center transition-transform duration-[7000ms] ease-out ${
                 isActive ? "scale-105" : "scale-100"
               }`}
-              style={{ backgroundImage: `url(${dest.image})` }}
             />
             {/* Ambient spatial gradient overlays tailored for maximum text legibility across all photography */}
             {/* Light enough to see the destination; darkest at the bottom where the search card sits.
@@ -186,11 +210,11 @@ export function HeroSlideshow({ activeIndex: controlledIndex, onChangeIndex: con
 export function DestinationTag({ index, onSelectRoute }) {
   const current = DESTINATIONS[index] || DESTINATIONS[0];
   return (
-    <div className="inline-flex max-w-full items-center gap-3 rounded-full border border-white/20 bg-slate-950/45 py-1.5 pl-1.5 pr-1.5 text-left text-white shadow-xl backdrop-blur-md" data-testid="explore-now">
+    <div className="flex w-full max-w-[22rem] sm:max-w-[30rem] items-center gap-3 rounded-full border border-white/20 bg-slate-950/45 py-1.5 pl-1.5 pr-1.5 text-left text-white shadow-xl backdrop-blur-md" data-testid="explore-now">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15">
         <Compass size={16} className="animate-spin-slow text-sky-200" />
       </span>
-      <span className="min-w-0 truncate text-xs sm:text-sm">
+      <span className="min-w-0 flex-1 truncate text-xs sm:text-sm">
         <span className="hidden sm:inline font-bold uppercase tracking-wider text-sky-200">Explore now</span>
         <span className="hidden sm:inline mx-1.5 text-white/40">·</span>
         <span className="font-semibold text-white">{current.name}, {current.country}</span>

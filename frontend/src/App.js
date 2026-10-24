@@ -10,18 +10,42 @@ import { Navbar } from "./components/Navbar";
 import { HeroSlideshow, DestinationTag } from "./components/HeroSlideshow";
 import { FlightSearchBox } from "./components/FlightSearchBox";
 import { DestinationsShowcase } from "./components/DestinationsShowcase";
-import { SearchResultsView } from "./components/SearchResultsView";
-import { CheckoutView, ConfirmationView } from "./components/CheckoutView";
-import { CustomerPortalView, BookingDetailsView } from "./components/CustomerPortalView";
-import { AdminWorkspaceView } from "./components/AdminWorkspaceView";
-import { ModernWorkspaceView } from "./components/ModernWorkspaceView";
-import { SignInView, SignUpView, ForgotPasswordView, ResetPasswordView } from "./components/AuthViews";
-import { HelpView, PolicyView, VerticalPreviewView } from "./components/HelpAndLegalViews";
 import { Footer } from "./components/Footer";
 import { CookieConsent, useCookieConsent } from "./components/CookieConsent";
 import { CurrencyProvider } from "./context/CurrencyContext";
-import { KeyboardShortcutsModal, CommandPalette } from "./components/KeyboardShortcutsModal";
 import { restoreLanguage } from "./components/LanguagePicker";
+
+// Pages other than home load on demand, so the first visit downloads only what the home page needs.
+const lazyNamed = (load, name) => React.lazy(() => load().then((m) => ({ default: m[name] })));
+const loadResults = () => import("./components/SearchResultsView");
+const loadCheckout = () => import("./components/CheckoutView");
+const loadPortal = () => import("./components/CustomerPortalView");
+const loadAuth = () => import("./components/AuthViews");
+const loadHelp = () => import("./components/HelpAndLegalViews");
+const SearchResultsView = lazyNamed(loadResults, "SearchResultsView");
+const CheckoutView = lazyNamed(loadCheckout, "CheckoutView");
+const ConfirmationView = lazyNamed(loadCheckout, "ConfirmationView");
+const CustomerPortalView = lazyNamed(loadPortal, "CustomerPortalView");
+const BookingDetailsView = lazyNamed(loadPortal, "BookingDetailsView");
+const AdminWorkspaceView = lazyNamed(() => import("./components/AdminWorkspaceView"), "AdminWorkspaceView");
+const ModernWorkspaceView = lazyNamed(() => import("./components/ModernWorkspaceView"), "ModernWorkspaceView");
+const SignInView = lazyNamed(loadAuth, "SignInView");
+const SignUpView = lazyNamed(loadAuth, "SignUpView");
+const ForgotPasswordView = lazyNamed(loadAuth, "ForgotPasswordView");
+const ResetPasswordView = lazyNamed(loadAuth, "ResetPasswordView");
+const HelpView = lazyNamed(loadHelp, "HelpView");
+const PolicyView = lazyNamed(loadHelp, "PolicyView");
+const VerticalPreviewView = lazyNamed(loadHelp, "VerticalPreviewView");
+
+const loadShortcuts = () => import("./components/KeyboardShortcutsModal");
+const KeyboardShortcutsModal = lazyNamed(loadShortcuts, "KeyboardShortcutsModal");
+const CommandPalette = lazyNamed(loadShortcuts, "CommandPalette");
+
+const pageLoading = (
+  <main data-testid="app-loading" className="min-h-screen flex items-center justify-center">
+    <div className="w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+  </main>
+);
 
 // Icons & UI helpers
 import { Plane, Hotel, Car, ArrowRight, ShieldCheck, Info, Phone, Sparkles, X, Tag } from "lucide-react";
@@ -751,13 +775,14 @@ export default function App() {
       {/* Floating Spatial Liquid Glass Navbar */}
       <Navbar dark={dark} setDark={setDark} user={user} setUser={setUser} navigate={navigate} currentView={view} onOpenCommandPalette={() => setCommandPaletteOpen(true)} onOpenShortcuts={() => setShortcutsOpen(true)} />
 
-      {/* View Page */}
-      {hydrated ? page : <main data-testid="app-loading" className="min-h-[600px] flex items-center justify-center"><div className="w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" /></main>}
-
-      {/* Spatial Footer */}
-      {!ACCOUNT_VIEWS.includes(view) && (
-        <Footer navigate={navigate} dark={dark} />
-      )}
+      {/* View Page: public pages draw at once; signed-in pages and checkout wait for the session check. */}
+      {hydrated || !(ACCOUNT_VIEWS.includes(view) || ["checkout", "confirmation"].includes(view)) ? (
+        // The footer sits inside the same boundary so it can't jump while a page's code loads.
+        <React.Suspense fallback={pageLoading}>
+          {page}
+          {!ACCOUNT_VIEWS.includes(view) && <Footer navigate={navigate} dark={dark} />}
+        </React.Suspense>
+      ) : pageLoading}
 
       {/* Live Chat Integration */}
       <TawkWidget user={user} />
@@ -767,19 +792,19 @@ export default function App() {
       <SalesDealPopup view={view} />
 
       {/* Global Command Palette (Ctrl+K) & Shortcuts Cheat Sheet (?) */}
-      <CommandPalette 
+      {commandPaletteOpen && <React.Suspense fallback={null}><CommandPalette 
         isOpen={commandPaletteOpen} 
         onClose={() => setCommandPaletteOpen(false)} 
         navigate={navigate} 
         dark={dark} 
         setDark={setDark} 
         user={user} 
-      />
-      <KeyboardShortcutsModal 
+      /></React.Suspense>}
+      {shortcutsOpen && <React.Suspense fallback={null}><KeyboardShortcutsModal 
         isOpen={shortcutsOpen} 
         onClose={() => setShortcutsOpen(false)} 
         user={user} 
-      />
+      /></React.Suspense>}
     </div>
     </CurrencyProvider>
   );

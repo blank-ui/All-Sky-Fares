@@ -28,7 +28,20 @@ export function useCookieConsent() {
 }
 
 export function CookieConsent({ navigate }) {
-  const [open, setOpen] = useState(() => !getConsent());
+  const [open, setOpen] = useState(false);
+
+  // Shown once the web font has arrived, so the banner doesn't change size (and shift) right after it appears.
+  useEffect(() => {
+    if (getConsent()) return undefined;
+    let done = false;
+    const show = () => !done && setOpen(true);
+    const t = setTimeout(show, 2000);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(show);
+    return () => {
+      done = true;
+      clearTimeout(t);
+    };
+  }, []);
 
   useEffect(() => {
     const reopen = () => setOpen(true);

@@ -1,7 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,500;1,600&display=swap');
 :root { --ink:#0d1b38; --blue:#087dd6; --sky:#dff4ff; --orange:#f36b20; --paper:#f7f9fc; --line:#dbe4ef; --muted:#64748b; }
 * { box-sizing:border-box; }
 body { margin:0; font-family:'DM Sans',sans-serif; background:var(--paper); color:var(--ink); -webkit-font-smoothing:antialiased; }

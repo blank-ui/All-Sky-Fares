@@ -1,6 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowRight, Star, Plane, MapPin, Compass, Shield, Clock, Heart, Sparkles } from "lucide-react";
 import { DESTINATIONS } from "./HeroSlideshow";
+
+/** A card photo that starts downloading only once its card is on screen, so it doesn't slow the first screen. */
+function CardPhoto({ src, alt }) {
+  const ref = useRef(null);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !("IntersectionObserver" in window)) return setShow(true);
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setShow(true);
+        io.disconnect();
+      }
+    }, { rootMargin: "0px 0px 150px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="w-full h-full">
+      {show && (
+        <img
+          src={src}
+          srcSet={[480, 800].map((w) => `${src.replace(/w=\d+&q=\d+/, `w=${w}&q=65`)} ${w}w`).join(", ")}
+          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+          alt={alt}
+          decoding="async"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      )}
+    </div>
+  );
+}
 
 const CATEGORIES = [
   { id: "all", label: "All Destinations" },
@@ -124,12 +156,7 @@ export function DestinationsShowcase({ onSelectRoute }) {
           >
             {/* Card Image with Ambient Sheen */}
             <div className="relative h-64 overflow-hidden rounded-t-2xl">
-              <img
-                src={trip.image}
-                alt={trip.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                loading="lazy"
-              />
+              <CardPhoto src={trip.image} alt={trip.title} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
               
               {/* Badge Tag */}
