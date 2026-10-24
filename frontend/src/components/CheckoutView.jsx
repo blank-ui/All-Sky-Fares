@@ -53,36 +53,6 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
   const isCard = mode.mode === "card";
   const [payment, setPayment] = useState(null); // { clientToken, booking } once the card step starts
   const [cardCharged, setCardCharged] = useState(false); // card accepted; only our confirm is left
-  const [cardData, setCardData] = useState({
-    name: user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "",
-    number: "",
-    expiry: "",
-    cvc: "",
-    zip: "",
-  });
-
-  const cardBrand = React.useMemo(() => {
-    const clean = cardData.number.replace(/\D/g, "");
-    if (/^4/.test(clean)) return "Visa";
-    if (/^5[1-5]/.test(clean) || /^2[2-7]/.test(clean)) return "Mastercard";
-    if (/^3[47]/.test(clean)) return "Amex";
-    if (/^6(?:011|5)/.test(clean)) return "Discover";
-    return "Card";
-  }, [cardData.number]);
-
-  const handleCardNumberChange = (val) => {
-    const raw = val.replace(/\D/g, "").slice(0, 16);
-    const parts = raw.match(/[\s\S]{1,4}/g) || [];
-    setCardData((prev) => ({ ...prev, number: parts.join(" ") }));
-  };
-
-  const handleExpiryChange = (val) => {
-    let clean = val.replace(/\D/g, "").slice(0, 4);
-    if (clean.length > 2) {
-      clean = `${clean.slice(0, 2)}/${clean.slice(2)}`;
-    }
-    setCardData((prev) => ({ ...prev, expiry: clean }));
-  };
 
   const updatePassenger = (idx, key, val) => {
     setPassengers(passengers.map((p, i) => (i === idx ? { ...p, [key]: val } : p)));
@@ -123,25 +93,9 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
       const contact = isGuest
         ? { email: lead.email, first_name: lead.given_name, last_name: lead.family_name, phone: lead.phone_number }
         : undefined;
-      const cleanNum = cardData.number.replace(/\s+/g, "");
-      const cardPayload = cleanNum.length >= 13 ? {
-        number: cleanNum,
-        name: cardData.name || `${lead.given_name} ${lead.family_name}`.trim(),
-        expiry: cardData.expiry,
-        cvc: cardData.cvc,
-        postal_code: cardData.zip,
-      } : undefined;
-
       const d = await apiRequest("/my/checkout", {
         method: "POST",
-        body: {
-          offer_id: offer.id,
-          passengers,
-          contact,
-          idempotency_key: idempotencyKey.current,
-          accept_terms: accepted,
-          card: cardPayload,
-        },
+        body: { offer_id: offer.id, passengers, contact, idempotency_key: idempotencyKey.current, accept_terms: accepted },
       });
       if (d.checkout_token) guestToken.current = d.checkout_token;
       if (d.step === "payment") setPayment({ clientToken: d.client_token, booking: d.booking });
@@ -472,130 +426,6 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
             </div>
             
 
-            {/* Credit or Debit Card Payment Form */}
-            <div className="liquid-glass-card p-6 sm:p-7 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl space-y-5 relative overflow-hidden backdrop-blur-xl" data-testid="card-input-section">
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-sky-500/10 dark:bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-white/10 relative">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500/20 to-cyan-500/20 text-sky-600 dark:text-cyan-300 border border-sky-400/30 flex items-center justify-center shrink-0 shadow-sm">
-                    <CreditCard size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight">Payment Method</h3>
-                    <p className="text-xs text-slate-500 dark:text-white/60">Credit or debit card · Instant authorization</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shadow-sm">
-                    <Lock size={12} className="text-emerald-500" />
-                    <span>256-Bit SSL Encrypted</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 relative">
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
-                    Cardholder Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Name as it appears on card"
-                    value={cardData.name}
-                    onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
-                    className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-medium"
-                    data-testid="card-name-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
-                    Card Number
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="text"
-                      required
-                      maxLength={19}
-                      placeholder="4000 1234 5678 9010"
-                      value={cardData.number}
-                      onChange={(e) => handleCardNumberChange(e.target.value)}
-                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-mono tracking-wider pr-20"
-                      data-testid="card-number-input"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 shadow-sm">
-                      {cardBrand}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
-                      Expires (MM/YY)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={5}
-                      placeholder="MM/YY"
-                      value={cardData.expiry}
-                      onChange={(e) => handleExpiryChange(e.target.value)}
-                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-mono text-center tracking-wider"
-                      data-testid="card-expiry-input"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
-                      CVC / CVV
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      maxLength={4}
-                      placeholder="CVC"
-                      value={cardData.cvc}
-                      onChange={(e) => setCardData({ ...cardData, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-mono text-center tracking-wider"
-                      data-testid="card-cvc-input"
-                    />
-                  </div>
-
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-white/70 block mb-1.5">
-                      Billing ZIP
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="ZIP Code"
-                      value={cardData.zip}
-                      onChange={(e) => setCardData({ ...cardData, zip: e.target.value.slice(0, 10) })}
-                      className="spatial-input w-full px-4 py-3 rounded-xl text-sm font-medium uppercase tracking-wider text-center sm:text-left"
-                      data-testid="card-zip-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-3 flex flex-wrap items-center justify-between gap-3 text-xs border-t border-slate-200 dark:border-white/10 relative">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 mr-1">Accepted:</span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">VISA</span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">MASTERCARD</span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">AMEX</span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-white/80">DISCOVER</span>
-                </div>
-                <div className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="shrink-0" />
-                  <span>Zero-Fraud Liability Guarantee</span>
-                </div>
-              </div>
-            </div>
-
             <div className="w-full block">
               <label className="flex items-start gap-3.5 cursor-pointer text-xs font-medium text-slate-700 dark:text-white/80 p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 select-none" data-testid="checkout-terms">
                 <input 
@@ -678,11 +508,13 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
               {busy ? (
                 <>
                   <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  <span>Authorizing payment & confirming flight…</span>
+                  <span>{isCard ? "Starting secure payment…" : "Reserving your seats…"}</span>
                 </>
               ) : (
                 <>
-                  <span>Pay & Confirm Flight · {offer.currency} {offer.total.toFixed(2)}</span>
+                  <span>
+                    {isCard ? "Continue to payment" : "Reserve seats"} · {offer.currency} {offer.total.toFixed(2)}
+                  </span>
                   <ArrowRight size={18} />
                 </>
               )}
@@ -807,7 +639,7 @@ export function CheckoutView({ offer: searchedOffer, user, onComplete, onCancel,
 const STATUS_COPY = {
   CONFIRMED: { eyebrow: "Booking confirmed", title: "You're all set for takeoff!", text: "Your booking is paid and confirmed with the airline. Your e-ticket and invoice are ready below." },
   ON_HOLD: { eyebrow: "Seats reserved with the airline", title: "Your seats are on hold", text: "Your airline booking code is live. Our reservations team will contact you to take payment; tickets are issued once it's paid." },
-  REQUESTED: { eyebrow: "Booking request received", title: "We've got your booking request", text: "Your flight reservation details and card authorization have been safely received. Our 24/7 ticketing concierge is finalizing seat confirmation with the carrier and will issue your e-ticket documents shortly." },
+  REQUESTED: { eyebrow: "Booking request received", title: "We've got your request", text: "This airline needs payment straight away, so our team will call or email you shortly to confirm the fare and take payment. Prices and seats aren't held until then." },
 };
 
 export function DocumentButtons({ booking, staffId, guestToken }) {

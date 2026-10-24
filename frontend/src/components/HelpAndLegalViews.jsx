@@ -146,6 +146,52 @@ export function HelpView({ navigate }) {
 }
 
 const POLICIES = {
+  about: {
+    eyebrow: "COMPANY",
+    title: "About Us",
+    subtitle: `${LEGAL.brand} is an online travel agency that finds and books flights with airlines worldwide.`,
+    sections: [
+      {
+        heading: "1. Who we are",
+        body: `${LEGAL.brand} is the trading name of ${legalEntity()}${LEGAL.address ? `, ${LEGAL.address}` : ""}. We're a travel agent: we search airline inventory, book your flights and support you until you travel. The flights themselves are operated by the airlines.`,
+      },
+      {
+        heading: "2. What we offer",
+        body: "Flight search and booking across full-service and low-cost airlines, through our licensed booking provider Duffel. Fare details before you buy: baggage allowance, change and cancellation fees, seat selection and the fare brand. A 24/7 travel desk for changes, cancellations and special requests. Hotels and car rentals are coming soon.",
+      },
+      {
+        heading: "3. How booking works",
+        body: "Search, pick your departing flight (and return), choose a fare and enter traveller details. The price you see is the total for all travellers, including airline taxes and our service fee. You pay by card in a secure payment form provided by Duffel; your card details go straight to the payment provider and never to our servers. Your tickets are issued by the airline as soon as the payment is confirmed, and your e-ticket and invoice are emailed to you.",
+      },
+      {
+        heading: "4. Our service fee",
+        body: "Our fee is included in the price shown on every fare, so there's nothing added at checkout. It's listed separately on your invoice.",
+      },
+    ],
+  },
+  contact: {
+    eyebrow: "COMPANY",
+    title: "Contact Us",
+    subtitle: "Our travel desk is open 24 hours a day, 7 days a week.",
+    sections: [
+      {
+        heading: "1. Phone",
+        body: `Call ${LEGAL.phone} (toll-free in the US) for new bookings, changes, cancellations and urgent help before you fly.`,
+      },
+      {
+        heading: "2. Email",
+        body: `Bookings and support: ${LEGAL.supportEmail}. We reply within one business day, usually much sooner. Legal notices: ${LEGAL.legalEmail}.`,
+      },
+      {
+        heading: "3. Your account",
+        body: "Signed in, you can see your bookings, download e-tickets and invoices, cancel eligible bookings and open a support ticket from My Bookings.",
+      },
+      {
+        heading: "4. Postal address",
+        body: `${legalEntity()}${LEGAL.address ? `, ${LEGAL.address}` : ""}.`,
+      },
+    ],
+  },
   privacy: {
     title: "Privacy Policy",
     subtitle: "What we collect, why, who we share it with, and your rights.",
@@ -354,16 +400,16 @@ export function PolicyView({ view }) {
         <div className="flex items-center gap-2 mb-2">
           <Scale size={16} className="text-cyan-600 dark:text-cyan-400" />
           <span className="eyebrow text-xs font-bold tracking-wider text-cyan-600 dark:text-cyan-400 uppercase">
-            LEGAL
+            {p.eyebrow || "LEGAL"}
           </span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">{p.title}</h1>
         <p className="text-slate-700 dark:text-white/70 text-sm mt-1 font-medium">{p.subtitle}</p>
-        <div className="flex flex-wrap items-center gap-4 text-xs text-emerald-700 dark:text-emerald-400 mt-4 pt-4 border-t border-slate-200 dark:border-white/10 font-medium">
+        {!p.eyebrow && <div className="flex flex-wrap items-center gap-4 text-xs text-emerald-700 dark:text-emerald-400 mt-4 pt-4 border-t border-slate-200 dark:border-white/10 font-medium">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 size={14} className="text-emerald-600" /> Last updated {LEGAL.policiesUpdated}
           </span>
-        </div>
+        </div>}
       </div>
 
       <div className="policy-body liquid-glass-card p-8 sm:p-10 rounded-3xl border border-slate-300 dark:border-white/10 space-y-8 shadow-lg bg-white/90 dark:bg-slate-900/60">

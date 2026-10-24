@@ -28,6 +28,18 @@ const CONTROLS_META = {
     defaultMode: "disabled",
     requiresSuperAdmin: true,
   },
+  duffel_environment: {
+    label: "Duffel Environment",
+    category: "Payment Gateway",
+    description: "Which Duffel key the site uses for search, booking and card payments: test (sample flights, test cards) or live (real tickets and charges).",
+    allowedModes: ["test", "live"],
+    labels: {
+      test: "Test Key Active",
+      live: "Live Key Active",
+    },
+    defaultMode: "live", // unset: the legacy DUFFEL_API_KEY decides (see secrets.duffelKey)
+    requiresSuperAdmin: true,
+  },
   duffel_webhook: {
     label: "Inbound Duffel Webhook",
     category: "Webhooks",

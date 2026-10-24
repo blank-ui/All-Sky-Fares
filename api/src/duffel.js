@@ -1,18 +1,18 @@
-const { cfg } = require("./secrets");
+const { duffelKey } = require("./secrets");
 const { HttpError, round2 } = require("./util");
 
 const DUFFEL_BASE = "https://api.duffel.com";
 const AIRLINE_LOGO_CDN = "https://images.kiwi.com/airlines/64x64";
 
 const duffelHeaders = () => ({
-  Authorization: `Bearer ${cfg("DUFFEL_API_KEY")}`,
+  Authorization: `Bearer ${duffelKey()}`,
   "Duffel-Version": "v2",
   Accept: "application/json",
   "Accept-Encoding": "gzip",
 });
 
 async function duffelCall(method, path, jsonBody, logger = console) {
-  if (!cfg("DUFFEL_API_KEY")) throw new HttpError(503, "Flight service is awaiting configuration");
+  if (!duffelKey()) throw new HttpError(503, "Flight service is awaiting configuration");
   const headers = duffelHeaders();
   if (jsonBody !== undefined) headers["Content-Type"] = "application/json";
   let r;

@@ -1495,7 +1495,9 @@ function IntegrationsSection({ user: propUser }) {
    ========================================================================== */
 
 const SECRET_HELP = {
-  DUFFEL_API_KEY: "Live airline search and reservation checkout. Set a duffel_live_… key for real inventory.",
+  DUFFEL_TEST_API_KEY: "Duffel test key (duffel_test_…): sample flights, test card payments, no real tickets.",
+  DUFFEL_LIVE_API_KEY: "Duffel live key (duffel_live_…): real airline inventory, tickets and card charges.",
+  DUFFEL_API_KEY: "Older single Duffel key. Used only when no test/live key is set for the selected environment.",
   RESEND_API_KEY: "Transactional email provider for e-tickets, invoices, and password resets.",
   SENDER_EMAIL: "Authenticated outbound sender address (e.g. concierge@allskyfares.com).",
   CRM_WEBHOOK_URL: "Secure endpoint receiving HMAC-signed booking events.",
@@ -1525,8 +1527,58 @@ function CredentialsSection() {
     }
   };
 
+  const duffel = state.data?.duffel;
+  const switchEnv = async (env) => {
+    try {
+      await apiRequest("/admin/integrations/controls/duffel_environment", { method: "PUT", body: { value: env } });
+      setNotice({ tone: "success", text: `Duffel ${env} key is now active for search, booking and payments.` });
+      load();
+    } catch (err) {
+      setNotice({ tone: "error", text: err.message });
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {duffel && (
+        <BentoPanel
+          title="Duffel Environment"
+          description="Test uses sample flights and Duffel test cards (no real charge). Live books real tickets and charges real cards."
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-testid="duffel-environment">
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full shrink-0 ${duffel.active === "live" ? "bg-emerald-500" : duffel.active === "test" ? "bg-amber-500" : "bg-rose-500"}`} />
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white" data-testid="duffel-active">
+                  {duffel.active === "missing" ? "No Duffel key active" : `${duffel.active === "live" ? "Live" : "Test"} key active`}
+                </div>
+                <div className="text-xs text-slate-500 dark:text-white/50">
+                  {duffel.active === "live" ? "Real bookings and real card charges." : duffel.active === "test" ? "Sample data only. Customers can't buy real tickets." : "Add a test or live key below."}
+                </div>
+              </div>
+            </div>
+            <div className="inline-flex rounded-xl border border-slate-200 dark:border-white/10 p-1 bg-slate-50 dark:bg-white/5" role="group" aria-label="Duffel environment">
+              {["test", "live"].map((env) => (
+                <button
+                  key={env}
+                  type="button"
+                  onClick={() => duffel.active !== env && switchEnv(env)}
+                  disabled={!duffel[`${env}_ready`]}
+                  title={duffel[`${env}_ready`] ? "" : `Add DUFFEL_${env.toUpperCase()}_API_KEY below first`}
+                  aria-pressed={duffel.active === env}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    duffel.active === env ? (env === "live" ? "bg-emerald-600 text-white" : "bg-amber-500 text-white") : "text-slate-600 dark:text-white/70 hover:bg-white dark:hover:bg-white/10"
+                  }`}
+                  data-testid={`duffel-env-${env}`}
+                >
+                  {env === "live" ? "Live" : "Test"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </BentoPanel>
+      )}
+
       <BentoPanel
         title="Credentials Vault"
         description="Provider keys encrypted at rest in the database. Secrets are masked and never exposed in plain text."

@@ -286,10 +286,22 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
   }, []);
 
   // Compute metrics from database bookings
-  const totalSpend = bookings.reduce(
-    (sum, b) => sum + (Number(b.customer_total) || Number(b.total_amount) || 0),
-    0
-  );
+  // Money and flights only count once a booking is paid; requests, holds and cancellations don't.
+  const paidBookings = bookings.filter((b) => b.payment_status === "paid" || b.status === "CONFIRMED");
+  const bookingTotal = (b) => Number(b.customer_total) || Number(b.total_amount) || 0;
+  const totalSpend = paidBookings.reduce((sum, b) => sum + bookingTotal(b), 0);
+  const totalSectors = paidBookings.reduce((n, b) => n + (b.slices || []).reduce((m, s) => m + ((s.segments || []).length || 1), 0), 0);
+  const airlineBreakdown = Object.entries(
+    paidBookings.reduce((acc, b) => ({ ...acc, [b.airline || "Other"]: (acc[b.airline || "Other"] || 0) + 1 }), {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .map(([airline, n]) => ({ airline, count: `${n} booking${n === 1 ? "" : "s"}`, pct: Math.round((n / paidBookings.length) * 100) }));
+  const chartYear = new Date().getFullYear() - (timeFilter === "Last Year" ? 1 : 0);
+  const monthlySpend = Array.from({ length: 12 }, (_, m) =>
+    paidBookings
+      .filter((b) => { const d = new Date(b.paid_at || b.created_at); return d.getFullYear() === chartYear && d.getMonth() === m; })
+      .reduce((sum, b) => sum + bookingTotal(b), 0));
+  const monthlyMax = Math.max(...monthlySpend, 0);
   const confirmedBookings = bookings.filter((b) => b.status === "CONFIRMED");
   const onHoldBookings = bookings.filter((b) => b.status === "ON_HOLD");
   const upcomingTrip =
@@ -708,7 +720,7 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                         <span>e-Tickets</span>
                       </div>
                       <div className="mt-2">
-                        <span className="text-lg font-extrabold text-slate-900 dark:text-white">{bookings.length}</span>
+                        <span className="text-lg font-extrabold text-slate-900 dark:text-white">{confirmedBookings.length}</span>
                         <span className="ml-1 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-100/60 dark:bg-cyan-950/60 px-1.5 py-0.2 rounded-full">
                           Issued
                         </span>
@@ -766,32 +778,15 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                   </div>
 
                   <div className="h-40 w-full flex items-end justify-between gap-1.5 pt-4 px-1">
-                    {[
-                      { m: "Jan", green: 40, dark: 25 },
-                      { m: "Feb", green: 55, dark: 40 },
-                      { m: "Mar", green: 70, dark: 35 },
-                      { m: "Apr", green: 60, dark: 45 },
-                      { m: "May", green: 85, dark: 40 },
-                      { m: "Jun", green: 95, dark: 60, active: true },
-                      { m: "Jul", green: 75, dark: 45 },
-                      { m: "Aug", green: 65, dark: 50 },
-                      { m: "Sep", green: 80, dark: 35 },
-                      { m: "Oct", green: 90, dark: 55 },
-                      { m: "Nov", green: 70, dark: 40 },
-                      { m: "Dec", green: 85, dark: 45 },
-                    ].map((item) => (
-                      <div key={item.m} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group relative">
-                        <div className="w-full flex items-end justify-center gap-0.5 h-28">
+                    {monthlySpend.map((amount, m) => (
+                      <div key={m} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group relative" title={`$${amount.toFixed(2)}`}>
+                        <div className="w-full flex items-end justify-center h-28">
                           <div
-                            style={{ height: `${item.dark}%` }}
-                            className="w-2 rounded-t-sm bg-slate-300 dark:bg-slate-700 group-hover:bg-cyan-500 transition-all"
-                          />
-                          <div
-                            style={{ height: `${item.green}%` }}
-                            className="w-2 rounded-t-sm bg-sky-500 group-hover:bg-sky-400 transition-all"
+                            style={{ height: monthlyMax ? `${Math.max((amount / monthlyMax) * 100, amount ? 4 : 0)}%` : 0 }}
+                            className="w-3 rounded-t-sm bg-sky-500 group-hover:bg-sky-400 transition-all"
                           />
                         </div>
-                        <span className="text-[9px] font-medium text-slate-400">{item.m}</span>
+                        <span className="text-[9px] font-medium text-slate-400">{["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m]}</span>
                       </div>
                     ))}
                   </div>
@@ -1243,7 +1238,7 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                     ${totalSpend > 0 ? totalSpend.toFixed(2) : "0.00"}
                   </div>
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 block">
-                    Audited across all bookings
+                    Paid bookings only
                   </span>
                 </div>
 
@@ -1253,28 +1248,28 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
                     {totalSectors} Sectors
                   </div>
                   <span className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold mt-1 block">
-                    {bookings.length > 0 ? "100% on-time airline sync" : "No active sectors"}
+                    {totalSectors > 0 ? `Flights across ${paidBookings.length} paid booking${paidBookings.length === 1 ? "" : "s"}` : "No paid bookings yet"}
                   </span>
                 </div>
 
                 <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 shadow-sm">
-                  <span className="text-xs text-slate-400 font-medium">Estimated Miles Flown</span>
+                  <span className="text-xs text-slate-400 font-medium">Average Booking Value</span>
                   <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                    {bookings.length > 0 ? (totalSectors * 2400).toLocaleString() : "0"} Miles
+                    ${paidBookings.length ? (totalSpend / paidBookings.length).toFixed(2) : "0.00"}
                   </div>
                   <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1 block">
-                    {bookings.length > 0 ? "Calculated from route GCD" : "Awaiting completed flights"}
+                    Per paid booking
                   </span>
                 </div>
               </div>
 
               <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 shadow-sm">
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">Airline Breakdown Distribution</h3>
-                <p className="text-xs text-slate-400 mb-5">Proportion of bookings by scheduled operating carrier.</p>
+                <p className="text-xs text-slate-400 mb-5">Share of paid bookings by airline.</p>
 
                 {airlineBreakdown.length === 0 ? (
                   <div className="text-center py-8 text-xs text-slate-400 dark:text-slate-500">
-                    No flight booking history yet. Confirmed flights and carrier analytics will appear here.
+                    No paid bookings yet. Airline shares appear here once bookings are paid.
                   </div>
                 ) : (
                   <div className="space-y-3">

@@ -55,9 +55,9 @@ export function AirportAutocomplete({
   // Compute search suggestions
   const suggestions = React.useMemo(() => {
     if (!isEditing || !typed || !query.trim()) {
-      return searchAirports("", 8);
+      return searchAirports("", 12);
     }
-    return searchAirports(query, 8);
+    return searchAirports(query, 30);
   }, [query, isEditing, typed]);
 
   // Reset active index when suggestions change
@@ -92,7 +92,7 @@ export function AirportAutocomplete({
 
     // If query has text, resolve it
     if (query.trim()) {
-      const resolvedCode = resolveIataCode(query, value || "LHR");
+      const resolvedCode = resolveIataCode(query, value || "");
       const match = AIRPORTS.find((a) => a.code === resolvedCode);
       onChange(resolvedCode, match);
       if (match) {
@@ -118,6 +118,10 @@ export function AirportAutocomplete({
     if (inputRef.current) {
       inputRef.current.select();
     }
+    // Nudge the page so the suggestion list isn't cut off below the fold.
+    const rect = containerRef.current && containerRef.current.getBoundingClientRect();
+    const room = window.innerHeight - (rect ? rect.bottom : 0);
+    if (rect && room < 320) window.scrollBy({ top: Math.min(320 - room, rect.top - 80), behavior: "smooth" });
   };
 
   const handleInputChange = (e) => {
@@ -260,21 +264,21 @@ export function AirportAutocomplete({
       {/* ----------------- GOOGLE FLIGHTS-STYLE AUTOCOMPLETE DROPDOWN ----------------- */}
       {open && (
         <div
-          className="absolute top-full left-0 right-0 sm:min-w-[340px] z-50 mt-1.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-sky-950/20 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-          style={{ maxHeight: "380px" }}
+          className="absolute top-full left-0 right-0 sm:min-w-[360px] z-[60] mt-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-sky-950/20 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          style={{ maxHeight: "min(420px, 70vh)" }}
         >
           {/* Header Strip */}
-          <div className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/80 dark:bg-slate-950/50 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+          <div className="px-3.5 py-2 gap-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/80 dark:bg-slate-950/50 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
             <span>
               {query && isEditing && typed ? `Suggestions for "${query}"` : "Popular Global Destinations"}
             </span>
-            <span className="hidden sm:inline font-mono text-[9px] opacity-70">
+            <span className="hidden sm:inline whitespace-nowrap font-mono text-[9px] opacity-70">
               [↑↓ Navigate • ↵ Select]
             </span>
           </div>
 
           {/* Results List */}
-          <div ref={listRef} className="max-h-[300px] overflow-y-auto py-1 scrollbar-thin">
+          <div ref={listRef} className="max-h-[min(360px,60vh)] overflow-y-auto overscroll-contain py-1 scrollbar-thin">
             {suggestions.length > 0 ? (
               suggestions.map((item, idx) => {
                 const isActive = idx === activeIndex;

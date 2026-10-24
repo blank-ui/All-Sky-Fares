@@ -7,7 +7,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const db = require("./src/db");
-const { loadSecrets, crmWebhookReady, cfg } = require("./src/secrets");
+const { loadSecrets, crmWebhookReady, cfg, duffelKey } = require("./src/secrets");
 const { dispatchOutbox } = require("./src/crm");
 const { hashPassword } = require("./src/auth");
 const { HttpError, utcNow, addMs, DAY, uuid, timingSafeEqualStr } = require("./src/util");
@@ -71,7 +71,7 @@ const health = (req, res) => {
 };
 app.get("/health", health);
 app.get("/api/health", health);
-app.get("/api/", (req, res) => res.json({ service: "AllSkyFares OTA", status: "ready", duffel: Boolean(cfg("DUFFEL_API_KEY")) }));
+app.get("/api/", (req, res) => res.json({ service: "AllSkyFares OTA", status: "ready", duffel: Boolean(duffelKey()) }));
 
 // ---- routes
 const api = express.Router();

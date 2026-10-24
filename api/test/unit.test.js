@@ -76,6 +76,18 @@ test("checkout mode: card only when Duffel Payments is switched on", () => {
   secrets.secrets.clear();
 });
 
+test("Duffel key follows the picked environment, with the old single key as fallback", () => {
+  secrets.secrets.set("DUFFEL_API_KEY", "duffel_live_old");
+  assert.equal(secrets.duffelKey(null), "duffel_live_old");
+  assert.equal(secrets.duffelKey("live"), "duffel_live_old");
+  assert.equal(secrets.duffelKey("test"), ""); // never silently stays on the live key
+  secrets.secrets.set("DUFFEL_TEST_API_KEY", "duffel_test_new");
+  secrets.secrets.set("DUFFEL_LIVE_API_KEY", "duffel_live_new");
+  assert.equal(secrets.duffelKey("test"), "duffel_test_new");
+  assert.equal(secrets.duffelKey("live"), "duffel_live_new");
+  secrets.secrets.clear();
+});
+
 test("markups: most specific route wins, amount per traveller", () => {
   const m = [{ origin: "LHR", destination: "*", markup_amount: 10, markup_percent: 5 }, { origin: "*", destination: "*", markup_amount: 20, markup_percent: 0 }];
   assert.deepEqual(pricing.applyMarkup(400, 2, pricing.matchMarkup(m, "LHR", "JFK")), [440, 40]);

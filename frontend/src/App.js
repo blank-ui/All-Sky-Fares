@@ -44,6 +44,8 @@ const KNOWN_ROUTES = new Set([
   "reset",
   "checkout",
   "results",
+  "about",
+  "contact",
   "privacy",
   "terms",
   "refund",
@@ -324,7 +326,7 @@ function HomeView({ onSearch, initialForm, onSelectRoute }) {
   return (
     <main data-testid="customer-home" className="relative min-h-screen">
       {/* 1. Hero Slideshow (High-res background animation with Ken Burns effect) */}
-      <section className="relative sm:min-h-[92vh] flex flex-col justify-center items-center px-4 sm:px-6 pt-[5.5rem] sm:pt-24 pb-8 sm:pb-16 overflow-hidden">
+      <section className="relative sm:min-h-[92vh] flex flex-col justify-center items-center px-4 sm:px-6 pt-[5.5rem] sm:pt-24 pb-8 sm:pb-16">
         <HeroSlideshow
           activeIndex={activeSlideIndex}
           onChangeIndex={setActiveSlideIndex}
@@ -400,10 +402,10 @@ export default function App() {
     ret.setDate(now.getDate() + 14);
 
     return {
-      origin: "LHR",
-      destination: "JFK",
-      departure_date: depart.toISOString().split("T")[0],
-      return_date: ret.toISOString().split("T")[0],
+      origin: "",
+      destination: "",
+      departure_date: "",
+      return_date: "",
       trip_type: "round_trip",
       cabin: "economy",
       adults: 1,
@@ -707,7 +709,7 @@ export default function App() {
   else if (view === "accountSettings" && user) page = <CustomerPortalView user={user} navigate={navigate} setUser={setUser} initialTab="settings" />;
   else if (view === "bookingDetails" && user) page = <BookingDetailsView navigate={navigate} />;
   else if (view === "help") page = <HelpView navigate={navigate} />;
-  else if (["privacy", "terms", "refund", "cookies"].includes(view)) page = <PolicyView view={view} />;
+  else if (["about", "contact", "privacy", "terms", "refund", "cookies"].includes(view)) page = <PolicyView view={view} />;
   else if (["hotels", "cars"].includes(view)) page = <VerticalPreviewView view={view} navigate={navigate} />;
   else page = <HomeView onSearch={doSearch} initialForm={searchForm} onSelectRoute={handleSelectRoute} />;
   // A page with nothing to show (e.g. /checkout without a chosen flight) falls back to home: say so in the URL.

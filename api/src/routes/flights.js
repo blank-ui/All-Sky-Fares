@@ -37,36 +37,6 @@ function resolveSearch(b) {
   return { slices, tripType, cabin, adults };
 }
 
-function isTestCardNumber(num) {
-  const clean = String(num || "").replace(/\D/g, "");
-  if (/^424242/.test(clean)) return true;
-  if (/^400000000000/.test(clean)) return true;
-  if (/^411111111111/.test(clean)) return true;
-  if (/^555555555555/.test(clean)) return true;
-  if (/^3782822463/.test(clean)) return true;
-  if (/^601111111111/.test(clean)) return true;
-  if (/^(\d)\1{12,}$/.test(clean)) return true;
-  return false;
-}
-
-function detectCardBrand(num) {
-  const clean = String(num).replace(/\D/g, "");
-  if (/^4/.test(clean)) return "Visa";
-  if (/^5[1-5]/.test(clean) || /^2[2-7]/.test(clean)) return "Mastercard";
-  if (/^3[47]/.test(clean)) return "American Express";
-  if (/^6(?:011|5)/.test(clean)) return "Discover";
-  return "Card";
-}
-
-function generatePnr() {
-  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-  let pnr = "";
-  for (let i = 0; i < 6; i++) {
-    pnr += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return pnr;
-}
-
 /** First leg's airports as Duffel priced them; markups are matched on these everywhere. */
 function offerRoute(offer) {
   const first = (offer.slices || [])[0] || {};
@@ -156,7 +126,7 @@ module.exports = (logger) => {
     const raw = result.data || {};
     const markups = await loadMarkups(logger);
     // Duffel often returns many fare variants of the same flights; show each itinerary once, at its cheapest.
-    const ranked = cheapestPerItinerary(raw.offers).slice(0, 50);
+    const ranked = cheapestPerItinerary(raw.offers);
     const offers = [];
     for (const offer of ranked) {
       const owner = offer.owner || {};
@@ -176,6 +146,7 @@ module.exports = (logger) => {
         continue;
       }
       offers.push(await presentOffer(offer, markups));
+      if (offers.length >= 200) break;
     }
     offers.sort((a, b) => a.total - b.total);
     res.json({ offers, count: offers.length, offer_request_id: raw.id || null, trip_type: tripType, test_mode: raw.live_mode === false });
@@ -348,88 +319,6 @@ module.exports = (logger) => {
         customer_total: customerTotal, currency, payment_status: "unpaid",
         crm_sync_status: "PENDING", terms_accepted_at: utcNow(), live_mode: duffelMode() === "live", created_at: utcNow(),
       };
-
-      // 0) Card checkout with submitted card details.
-      const card = req.body.card;
-      if (card && card.number) {
-        const cardNum = String(card.number).replace(/\D/g, "");
-        if (cardNum.length < 13 || cardNum.length > 19) {
-          throw new HttpError(422, "Please enter a valid card number");
-        }
-        if (duffelMode() === "live" && isTestCardNumber(cardNum)) {
-          throw new HttpError(422, "Test credit cards cannot be processed in Live booking mode. Please provide a valid credit or debit card.");
-        }
-        const expMonth = Number(card.exp_month || (String(card.expiry || "").split("/")[0]));
-        const expYearStr = String(card.exp_year || (String(card.expiry || "").split("/")[1]));
-        const expYear = expYearStr.length === 2 ? 2000 + Number(expYearStr) : Number(expYearStr);
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        if (!expMonth || expMonth < 1 || expMonth > 12 || !expYear || expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
-          throw new HttpError(422, "Please enter a valid card expiration date (MM/YY)");
-        }
-        if (!card.cvc || String(card.cvc).trim().length < 3) {
-          throw new HttpError(422, "Please enter a valid 3 or 4-digit security code (CVC)");
-        }
-
-        const brand = detectCardBrand(cardNum);
-        const last4 = cardNum.slice(-4);
-        const cardMethodLabel = `${brand} ending in ${last4}`;
-
-        let order = null;
-        let airlinePnr = null;
-        let duffelOrderId = null;
-        let bookingStatus = bk.S.REQUESTED;
-        let paymentStatus = "authorized";
-
-        // Try to hold seats with the airline if the offer permits:
-        if (requirements.requires_instant_payment === false) {
-          try {
-            order = await bk.createOrder(booking, "hold", logger);
-          } catch (e) {
-            logger.warn(`Could not hold with airline: ${e.message}`);
-          }
-        }
-
-        // Try instant order using Duffel balance if hold not available:
-        if (!order) {
-          try {
-            order = await bk.createOrder(booking, "instant", logger);
-          } catch (e) {
-            logger.warn(`Instant Duffel balance order not placed: ${e.message}`);
-          }
-        }
-
-        if (order) {
-          const of = bk.orderFields(order, booking);
-          airlinePnr = of.airline_pnr || order.booking_reference;
-          duffelOrderId = order.id;
-          bookingStatus = of.status || (order.payment_status?.awaiting_payment ? bk.S.ON_HOLD : bk.S.CONFIRMED);
-          paymentStatus = bookingStatus === bk.S.CONFIRMED ? "paid" : "authorized";
-        } else {
-          // If no airline GDS order was issued by Duffel, do NOT create a fake PNR!
-          // Mark as REQUESTED with payment authorized: our 24/7 desk issues it with the carrier.
-          bookingStatus = bk.S.REQUESTED;
-          paymentStatus = "authorized";
-          airlinePnr = null;
-        }
-
-        booking = {
-          ...booking,
-          status: bookingStatus,
-          booking_mode: "card",
-          payment_status: paymentStatus,
-          payment_method: cardMethodLabel,
-          paid_at: bookingStatus === bk.S.CONFIRMED ? utcNow() : null,
-          airline_pnr: airlinePnr,
-          duffel_order_id: duffelOrderId,
-        };
-
-        await db.upsert("bookings", booking, ["ota_booking_id"]);
-        await announce(booking, bookingStatus === bk.S.CONFIRMED ? "customer.booking_confirmed" : "customer.booking_requested", user.id);
-        emailInBackground(booking);
-        return reply({ step: "done", booking: customerBooking(booking), replayed: false });
-      }
 
       // 1) Card checkout through Duffel Payments.
       if (cardPaymentsEnabled()) {

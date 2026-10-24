@@ -3,7 +3,7 @@ const multer = require("multer");
 const { parse } = require("csv-parse/sync");
 const db = require("../db");
 const v = require("../validate");
-const { SECRET_NAMES, cfg, cipher, storeSecret, crmWebhookReady, duffelMode } = require("../secrets");
+const { SECRET_NAMES, cfg, cipher, storeSecret, crmWebhookReady, duffelKey, duffelMode } = require("../secrets");
 const { DUFFEL_BASE, duffelHeaders, duffelCall } = require("../duffel");
 const { applyMarkup } = require("../pricing");
 const { dispatchOutbox } = require("../crm");
@@ -67,7 +67,7 @@ const allPricedRoutes = () => db.fetchAll("SELECT id, origin, destination FROM r
 
 /** Re-checks route prices older than PRICE_REFRESH_HOURS (run by the scheduler). */
 async function refreshStalePrices(logger) {
-  if (!cfg("DUFFEL_API_KEY")) return 0;
+  if (!duffelKey()) return 0;
   const stale = await db.fetchAll(
     "SELECT id, origin, destination FROM route_markups WHERE origin <> '*' AND destination <> '*' AND (price_checked_at IS NULL OR price_checked_at < ?)",
     addMs(utcNow(), -PRICE_REFRESH_HOURS * HOUR),
@@ -294,7 +294,7 @@ function router(logger) {
 
   // ---- integration health
   async function duffelHealth() {
-    if (!cfg("DUFFEL_API_KEY")) return { provider: "Duffel", status: "Not Configured", healthy: false, detail: "DUFFEL_API_KEY missing" };
+    if (!duffelKey()) return { provider: "Duffel", status: "Not Configured", healthy: false, detail: "No Duffel key for the selected environment" };
     try {
       const resp = await fetch(`${DUFFEL_BASE}/air/airlines?limit=1`, { headers: duffelHeaders(), signal: AbortSignal.timeout(8000) });
       return { provider: "Duffel", status: resp.status === 200 ? "Connected" : "Error", healthy: resp.status === 200, detail: `HTTP ${resp.status} · ${duffelMode()} mode` };
@@ -379,6 +379,7 @@ function router(logger) {
         preview: cfg(name) ? mask(cfg(name)) : "",
         updated_at: rows.has(name) ? rows.get(name).updated_at : null,
       })),
+      duffel: { active: duffelMode(), test_ready: Boolean(duffelKey("test")), live_ready: Boolean(duffelKey("live")) },
     });
   }));
 
@@ -387,6 +388,8 @@ function router(logger) {
     if (!SECRET_NAMES.includes(name)) throw new HttpError(404, "Unknown credential");
     if (!cipher()) throw new HttpError(503, "APP_SECRETS_KEY is not configured on the server");
     const value = v.str(v.body(req), "value", { min: 1, max: 4000, label: "Value" }).trim();
+    const env = { DUFFEL_TEST_API_KEY: "test", DUFFEL_LIVE_API_KEY: "live" }[name];
+    if (env && !value.startsWith(`duffel_${env}_`)) throw new HttpError(422, `${name} must start with duffel_${env}_`);
     await storeSecret(name, value, req.user.id);
     await audit(req.user.id, "settings.secret_updated", { name });
     res.json({ name, source: "database", preview: mask(value) });
@@ -413,6 +416,10 @@ function router(logger) {
     }
     if (ctrl.requiresSuperAdmin && req.user.role !== "SUPER_ADMIN") {
       throw new HttpError(403, `Modifying ${ctrl.label || key} requires SUPER_ADMIN privilege`);
+    }
+    // Switching to an environment with no key would take search and checkout offline.
+    if (key === "duffel_environment" && ctrl.allowedModes.includes(value) && !duffelKey(value)) {
+      throw new HttpError(409, `Add a Duffel ${value} key (DUFFEL_${value.toUpperCase()}_API_KEY) under Credentials first.`);
     }
 
     const updated = await setControl(key, value, req.user.id);

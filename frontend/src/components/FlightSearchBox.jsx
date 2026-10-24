@@ -31,17 +31,18 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
     return d.toISOString().split("T")[0];
   };
 
+  const today = getFutureDate(0);
   const [rtForm, setRtForm] = useState({ 
-    origin: initial.origin || "LHR", 
-    destination: initial.destination || "JFK", 
-    departure_date: initial.departure_date || getFutureDate(7), 
-    return_date: initial.return_date || getFutureDate(14) 
+    origin: initial.origin || "", 
+    destination: initial.destination || "", 
+    departure_date: initial.departure_date || "", 
+    return_date: initial.return_date || "" 
   });
   const [mcLegs, setMcLegs] = useState([
-    { origin: "LHR", destination: "JFK", departure_date: getFutureDate(7) },
-    { origin: "JFK", destination: "LAX", departure_date: getFutureDate(11) },
-    { origin: "LAX", destination: "LHR", departure_date: getFutureDate(16) },
+    { origin: "", destination: "", departure_date: "" },
+    { origin: "", destination: "", departure_date: "" },
   ]);
+  const [error, setError] = useState("");
 
   // Sync state if parent passes new route selections (e.g., from destinations showcase)
   useEffect(() => {
@@ -71,14 +72,18 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
 
   const submit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    const cleanOrigin = resolveIataCode(rtForm.origin, "LHR");
-    const cleanDestination = resolveIataCode(rtForm.destination, "JFK");
+    const cleanOrigin = resolveIataCode(rtForm.origin, "");
+    const cleanDestination = resolveIataCode(rtForm.destination, "");
     if (tripType === "multi_city") {
       const cleanLegs = mcLegs.map((l) => ({
         ...l,
-        origin: resolveIataCode(l.origin, "LHR"),
-        destination: resolveIataCode(l.destination, "JFK"),
+        origin: resolveIataCode(l.origin, ""),
+        destination: resolveIataCode(l.destination, ""),
       }));
+      const bad = cleanLegs.findIndex((l) => !l.origin || !l.destination || !l.departure_date);
+      if (bad !== -1) return setError(`Add the airports and date for flight ${bad + 1}.`);
+      if (cleanLegs.some((l) => l.origin === l.destination)) return setError("Each flight needs different departure and arrival airports.");
+      setError("");
       onSearch({ 
         trip_type: "multi_city", 
         slices: cleanLegs, 
@@ -86,6 +91,13 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
         adults: Number(common.adults) 
       });
     } else {
+      if (!cleanOrigin) return setError("Choose where you're flying from.");
+      if (!cleanDestination) return setError("Choose where you're flying to.");
+      if (cleanOrigin === cleanDestination) return setError("Departure and arrival airports must be different.");
+      if (!rtForm.departure_date) return setError("Pick a departure date.");
+      if (tripType === "round_trip" && !rtForm.return_date) return setError("Pick a return date.");
+      if (tripType === "round_trip" && rtForm.return_date < rtForm.departure_date) return setError("Return date can't be before the departure date.");
+      setError("");
       const body = { 
         trip_type: tripType, 
         origin: cleanOrigin, 
@@ -218,6 +230,7 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
                   <input
                     type="date"
                     value={rtForm.departure_date}
+                    min={today}
                     onChange={(e) => setRtForm({ ...rtForm, departure_date: e.target.value })}
                     className="spatial-input date-with-icon w-full pl-9 pr-2 text-xs font-semibold h-12"
                     required
@@ -241,6 +254,7 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
                     <input
                       type="date"
                       value={rtForm.return_date}
+                      min={rtForm.departure_date || today}
                       onChange={(e) => setRtForm({ ...rtForm, return_date: e.target.value })}
                       className="spatial-input date-with-icon w-full pl-9 pr-2 text-xs font-semibold h-12"
                       required
@@ -375,6 +389,7 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
                   <input
                     type="date"
                     value={leg.departure_date}
+                    min={(i > 0 && mcLegs[i - 1].departure_date) || today}
                     onChange={(e) => updateLeg(i, "departure_date", e.target.value)}
                     className="spatial-input w-full text-xs"
                   />
@@ -446,6 +461,12 @@ export function FlightSearchBox({ initial = {}, onSearch, embedded = false }) {
             </div>
           </div>
         </div>
+      )}
+
+      {error && (
+        <p role="alert" className="mt-4 text-sm font-semibold text-rose-600 dark:text-rose-400" data-testid="search-error">
+          {error}
+        </p>
       )}
     </div>
   );

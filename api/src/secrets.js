@@ -6,7 +6,7 @@ const { utcNow } = require("./util");
 const { storedControlSync } = require("./settings");
 
 const SECRET_NAMES = [
-  "DUFFEL_API_KEY", "DUFFEL_WEBHOOK_SECRET", "DUFFEL_PAYMENTS", "RESEND_API_KEY", "SENDER_EMAIL",
+  "DUFFEL_TEST_API_KEY", "DUFFEL_LIVE_API_KEY", "DUFFEL_API_KEY", "DUFFEL_WEBHOOK_SECRET", "DUFFEL_PAYMENTS", "RESEND_API_KEY", "SENDER_EMAIL",
   "CRM_WEBHOOK_URL", "CRM_WEBHOOK_SECRET", "HOTELS_PROVIDER_KEY", "CARS_PROVIDER_KEY",
 ];
 const secrets = new Map();
@@ -84,8 +84,18 @@ async function storeSecret(name, value, actorId = null) {
 
 const crmWebhookReady = () => Boolean(cfg("CRM_WEBHOOK_URL") && cfg("CRM_WEBHOOK_SECRET"));
 
+/** The Duffel key for the environment an admin picked (test or live). The older single DUFFEL_API_KEY
+ * still works: alone when no environment is picked, or for the picked one when it's that kind of key. */
+// shortcut: a booking started under one key is followed up with whichever key is active now, so don't switch
+// mid-checkout; pass booking.live_mode through duffelCall if switching while bookings are in flight becomes common.
+function duffelKey(env = storedControlSync("duffel_environment")) {
+  const legacy = cfg("DUFFEL_API_KEY");
+  if (!env) return legacy;
+  return cfg(`DUFFEL_${env.toUpperCase()}_API_KEY`) || (legacy.startsWith(`duffel_${env}_`) ? legacy : "");
+}
+
 function duffelMode() {
-  const key = cfg("DUFFEL_API_KEY");
+  const key = duffelKey();
   if (!key) return "missing";
   return key.startsWith("duffel_live_") ? "live" : "test";
 }
@@ -103,4 +113,4 @@ function bookingMode() {
   return cardPaymentsEnabled() ? "card" : "hold";
 }
 
-module.exports = { SECRET_NAMES, secrets, Fernet, cipher, cfg, loadSecrets, storeSecret, crmWebhookReady, duffelMode, bookingMode, cardPaymentsEnabled };
+module.exports = { SECRET_NAMES, secrets, Fernet, cipher, cfg, loadSecrets, storeSecret, crmWebhookReady, duffelKey, duffelMode, bookingMode, cardPaymentsEnabled };

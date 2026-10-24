@@ -78,6 +78,15 @@ export function Footer({ navigate, dark = true }) {
               </li>
               <li>
                 <button
+                  data-testid="footer-about-link"
+                  onClick={() => navigate("about")}
+                  className={`transition-colors ${dark ? "hover:text-cyan-300 text-slate-400" : "hover:text-cyan-600 text-slate-600"}`}
+                >
+                  About Us
+                </button>
+              </li>
+              <li>
+                <button
                   data-testid="footer-help-link"
                   onClick={() => navigate("help")}
                   className={`transition-colors ${dark ? "hover:text-cyan-300 text-slate-400" : "hover:text-cyan-600 text-slate-600"}`}
@@ -88,10 +97,10 @@ export function Footer({ navigate, dark = true }) {
               <li>
                 <button
                   data-testid="footer-support-link"
-                  onClick={() => navigate("support")}
+                  onClick={() => navigate("contact")}
                   className={`transition-colors ${dark ? "hover:text-cyan-300 text-slate-400" : "hover:text-cyan-600 text-slate-600"}`}
                 >
-                  Contact Concierge
+                  Contact Us
                 </button>
               </li>
             </ul>
@@ -160,7 +169,7 @@ export function Footer({ navigate, dark = true }) {
                   onClick={() => navigate("refund")}
                   className={`transition-colors ${dark ? "hover:text-cyan-300 text-slate-400" : "hover:text-cyan-600 text-slate-600"}`}
                 >
-                  Refund Policy
+                  Refund &amp; Cancellation Policy
                 </button>
               </li>
               <li>
