@@ -438,6 +438,8 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [searchForm, setSearchForm] = useState(() => {
+    // The saved search only brings back a refreshed results/checkout page; every other page starts with an empty search box.
+    if (!["results", "checkout"].includes(routeFor(window.location.pathname))) return { ...defaultForm };
     try {
       const saved = tabLoad(TAB_KEYS.search);
       if (saved && saved.trip_type === "multi_city") {
