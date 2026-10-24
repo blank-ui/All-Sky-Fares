@@ -4,7 +4,7 @@
       "domain": "allskyfares.com",
       "username": "u633779242",
       "type": "nodejs",
-      "source": "api/ with the React build in api/public (deploy/package.ps1)",
+      "source": "git: blank-ui/All-Sky-Fares main, root api/, build script build:web (installs and builds frontend into api/public)",
       "node_version": 22,
       "entry_file": "server.js",
       "note": "One app serves the website and /api. Replaces the older Express site at launch."

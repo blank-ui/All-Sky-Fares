@@ -10,15 +10,15 @@ One Node.js app on the existing Hostinger Business plan (account `u633779242`) s
 
 The cron job retries CRM webhook deliveries, refreshes route prices, finishes or refunds card payments the browser didn't confirm, expires holds and old sessions. The app also does this every minute while it's running.
 
-## 1. Build the package
+## 1. How deploys work
 
-From the repo root on Windows:
+Hostinger deploys from GitHub: every push to `main` on `blank-ui/All-Sky-Fares` starts a new build of allskyfares.com. Hostinger clones the repo, installs `api/`, runs `npm run build:web` (which installs the frontend and copies the React build into `api/public`), then starts `api/server.js`.
 
-```
-powershell -ExecutionPolicy Bypass -File deploy\package.ps1
-```
+Stored build settings (hPanel → Websites → allskyfares.com → Node.js, or `hosting_nodejs_update-build-settings`): Node 22, app type `express`, root directory `api`, build script `build:web`, entry file `server.js`, package manager `npm`.
 
-It builds the website (`npm run build:web` in `api/`), runs the API tests, and writes `deploy/out/allskyfares-app.zip` (source + `public/`; no `node_modules`, no `.env`).
+Run `npm test` in `api/` before pushing: a push goes straight to the live site. Builds and rollbacks are in hPanel's Node.js build history.
+
+Fallback without Git: `powershell -ExecutionPolicy Bypass -File deploy\package.ps1` writes `deploy/out/allskyfares-app.zip`; upload it as `app.zip` to `public_html` and start a Node.js build from the archive.
 
 ## 2. Environment variables (hPanel → Websites → allskyfares.com → Node.js)
 
@@ -39,9 +39,8 @@ Set the full list (Hostinger replaces all variables at once, so send every one):
 
 ## 3. Deploy
 
-1. Upload `allskyfares-app.zip` as `app.zip` to the `public_html` of **allskyfares.com**.
-2. Start a Node.js build: Node 22, app type `express`, entry file `server.js`. This replaces the older Express site; Hostinger keeps its build history for rollback.
-3. Check:
+1. Push to `main`. Watch the build in hPanel → Node.js → Builds.
+2. Check:
    - `https://allskyfares.com/health` returns `{"status":"ok","database":true}`
    - `https://allskyfares.com/` loads the site, and a deep link like `/help` loads too
    - sign in, search, and the staff workspace work.
