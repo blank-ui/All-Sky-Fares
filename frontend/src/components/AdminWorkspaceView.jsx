@@ -507,7 +507,7 @@ function MarkupsSection() {
                 <input
                   className={`${input} font-mono uppercase font-bold text-center`}
                   maxLength={3}
-                  placeholder="LHR"
+                  placeholder="Any"
                   value={form.origin}
                   onChange={(e) => setForm({ ...form, origin: e.target.value.toUpperCase() })}
                   data-testid="markup-origin"
@@ -519,7 +519,7 @@ function MarkupsSection() {
                 <input
                   className={`${input} font-mono uppercase font-bold text-center`}
                   maxLength={3}
-                  placeholder="JFK"
+                  placeholder="Any"
                   value={form.destination}
                   onChange={(e) => setForm({ ...form, destination: e.target.value.toUpperCase() })}
                   data-testid="markup-destination"

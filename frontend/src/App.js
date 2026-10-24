@@ -143,6 +143,9 @@ function TawkWidget({ user }) {
   return null;
 }
 
+// Signed-in account and staff pages: no sales popup, phone-fares pill or site footer.
+const ACCOUNT_VIEWS = ["account", "bookings", "invoices", "reports", "support", "accountSettings", "bookingDetails", "workspace", "sales", "markups", "integrations", "crm", "credentials", "adminConsole"];
+
 function SalesDealPopup({ view }) {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
@@ -162,7 +165,7 @@ function SalesDealPopup({ view }) {
 
   useEffect(() => {
     // Opens automatically after 3.5 seconds on customer views unless dismissed during this view
-    if (["workspace", "sales", "account", "bookings", "support", "accountSettings", "adminConsole"].includes(view)) {
+    if (ACCOUNT_VIEWS.includes(view)) {
       setOpen(false);
       return undefined;
     }
@@ -211,7 +214,7 @@ function SalesDealPopup({ view }) {
   return (
     <>
       {/* 1. Modal Dialog Popup */}
-      {open && !["workspace", "sales", "account", "bookings", "support", "accountSettings", "adminConsole"].includes(view) && (
+      {open && !ACCOUNT_VIEWS.includes(view) && (
         <div 
           onClick={handleClose}
           className="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in cursor-pointer"
@@ -298,7 +301,7 @@ function SalesDealPopup({ view }) {
       )}
 
       {/* 2. Floating Quick-Hotline Action Pill (visible on landing page when modal is closed) */}
-      {!open && !["workspace", "sales", "account", "bookings", "support", "accountSettings"].includes(view) && (
+      {!open && !ACCOUNT_VIEWS.includes(view) && (
         <aside
           style={{ zIndex: 9990 }}
           className="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-950 shadow-2xl backdrop-blur-md border border-white/20 dark:border-slate-800 transition-all hover:scale-105 cursor-pointer animate-fade-in group z-40"
@@ -750,7 +753,7 @@ export default function App() {
       {hydrated ? page : <main data-testid="app-loading" className="min-h-[600px] flex items-center justify-center"><div className="w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" /></main>}
 
       {/* Spatial Footer */}
-      {!["workspace", "sales", "account", "bookings", "support", "accountSettings"].includes(view) && (
+      {!ACCOUNT_VIEWS.includes(view) && (
         <Footer navigate={navigate} dark={dark} />
       )}
 

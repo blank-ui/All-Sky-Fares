@@ -160,17 +160,6 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
   const [faqOpen, setFaqOpen] = useState(null);
 
 
-  // Quick flight explore form
-  const [exploreForm, setExploreForm] = useState({
-    origin: "LHR",
-    destination: "JFK",
-    departure_date: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
-    return_date: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0],
-    trip_type: "round_trip",
-    cabin: "economy",
-    adults: 1,
-  });
-
   const isStaff = user && ["SALES_AGENT", "ADMIN", "SUPER_ADMIN"].includes(user.role);
 
   // Synchronize profile form when user updates
@@ -461,11 +450,26 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
     { id: "help", label: "Help Center", icon: HelpCircle },
   ];
 
+  const TAB_SUBTITLES = {
+    dashboard: isStaff ? "Bookings, revenue and desk activity at a glance." : "Your trips, bookings and travel documents in one place.",
+    bookings: isStaff ? "Every reservation, its payment and ticketing status." : "Your upcoming and past trips.",
+    markups: "Set the service fee added on top of airline fares, by route.",
+    integrations: "Turn integrations, webhooks and test modes on or off.",
+    crm: "Booking confirmations sent to your CRM, and whether they arrived.",
+    credentials: "Duffel and payment keys for test and live mode.",
+    chat: "Set up the live chat widget shown to visitors.",
+    invoices: "Download invoices and e-tickets for each booking.",
+    reports: "Sales and travel figures from paid bookings.",
+    settings: "Your contact details and password.",
+    help: "Answers to common questions, or contact our travel desk.",
+  };
+  const activeItem = navigationItems.find((n) => n.id === activeTab);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#040814] text-slate-800 dark:text-slate-100 font-sans antialiased pt-16 transition-colors duration-300">
       
       {/* -------------------- MOBILE HORIZONTAL TABS (Touch-Optimized) -------------------- */}
-      <div className="md:hidden sticky top-16 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/10 px-3 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar shadow-xs">
+      <div className="md:hidden sticky top-16 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/10 px-3 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none shadow-xs">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -592,10 +596,10 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight capitalize">
-                {activeTab === "dashboard" ? "Travel Dashboard" : activeTab.replace(/([A-Z])/g, " $1")}
+                {activeTab === "dashboard" ? "Travel Dashboard" : activeItem ? activeItem.label : activeTab.replace(/([A-Z])/g, " $1")}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Track your journeys, bookings, and electronic travel documents in one place.
+                {TAB_SUBTITLES[activeTab] || TAB_SUBTITLES.dashboard}
               </p>
             </div>
 
@@ -967,7 +971,7 @@ export function ModernWorkspaceView({ user, setUser, dark, setDark, navigate, in
             <div className="space-y-5">
               {/* Filter Pills */}
               <div className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-900/70 p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10">
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
                   {["ALL", "CONFIRMED", "ON_HOLD", "CANCELLED"].map((status) => (
                     <button
                       key={status}
